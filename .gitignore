@@ -1,6 +1,10 @@
 node_modules/
+server/node_modules/
 dist/
-server/data.db
 .env
 .DS_Store
 *.log
+server/data.db
+server/data.db-shm
+server/data.db-wal
+tsconfig.tsbuildinfo
