@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: "PingFang SC", "Noto Sans SC", "Hiragino Sans GB", system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #D9CFBD;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #B8A890;
+  }
+
+  /* Selection */
+  ::selection {
+    background: #FBE9B8;
+    color: #3D352B;
+  }
+}
+
+@layer components {
+  /* Prose overrides for article preview */
+  .prose h1 { @apply text-2xl font-extrabold text-ink-900 mt-8 mb-4; }
+  .prose h2 { @apply text-xl font-bold text-ink-900 mt-6 mb-3; }
+  .prose h3 { @apply text-lg font-bold text-ink-800 mt-5 mb-2; }
+  .prose p { @apply mb-4 leading-relaxed; }
+  .prose ul, .prose ol { @apply mb-4 pl-5; }
+  .prose li { @apply mb-1.5; }
+  .prose strong { @apply font-bold text-ink-900; }
+  .prose code { @apply bg-ink-100 text-ink-800 px-1.5 py-0.5 rounded text-sm; }
+  .prose pre { @apply bg-ink-950 text-ink-100 p-4 rounded-xl overflow-x-auto mb-4; }
+  .prose pre code { @apply bg-transparent text-inherit p-0; }
+  .prose hr { @apply border-ink-200 my-6; }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
