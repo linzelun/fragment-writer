@@ -1,6 +1,6 @@
 import type { Fragment, WritingProject, ArticleOutput } from '../types';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
 const PROXY_URL = `${API_BASE}/api/deepseek/v1/chat/completions`;
 const MODEL = 'deepseek-chat';
 

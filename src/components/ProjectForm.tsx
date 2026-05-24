@@ -47,7 +47,7 @@ export default function ProjectForm({ editingId, onClose }: ProjectFormProps) {
     }
   }, [existing]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title.trim() || !form.topic.trim()) return;
 

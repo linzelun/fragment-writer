@@ -111,7 +111,7 @@ export function WritingProvider({ children }: { children: ReactNode }) {
     addProject: useCallback(async (data: Omit<WritingProject, 'id' | 'createdAt' | 'updatedAt'>) => {
       const id = generateId();
       const now = new Date().toISOString();
-      await api.projectsApi.create({ ...data, id, createdAt: now, updatedAt: now });
+      await api.projectsApi.create({ ...data, id, createdAt: now, updatedAt: now } as WritingProject);
       await api.projectsApi.list().then(projects => dispatch({ type: 'SET_PROJECTS', projects }));
       return id;
     }, []),
@@ -141,7 +141,7 @@ export function WritingProvider({ children }: { children: ReactNode }) {
     addFragment: useCallback(async (data: Omit<Fragment, 'id' | 'createdAt' | 'updatedAt'>) => {
       const id = generateId();
       const now = new Date().toISOString();
-      await api.fragmentsApi.create({ ...data, id, createdAt: now, updatedAt: now });
+      await api.fragmentsApi.create({ ...data, id, createdAt: now, updatedAt: now } as Fragment);
       if (state.activeProjectId) {
         const fragments = await api.fragmentsApi.listByProject(state.activeProjectId);
         dispatch({ type: 'SET_FRAGMENTS', fragments });
