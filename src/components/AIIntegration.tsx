@@ -29,7 +29,7 @@ export default function AIIntegration({ onArticleGenerated }: AIIntegrationProps
       });
 
       if (article) {
-        ArticleActions.saveArticle(activeProject.id, article);
+        await ArticleActions.saveArticle(activeProject.id, article);
         onArticleGenerated();
       }
     } catch {
