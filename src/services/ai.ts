@@ -74,6 +74,10 @@ export async function generateArticle(
     return null;
   }
 
+  // Create abort controller with timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 120000); // 2分钟超时
+
   try {
     const response = await fetch(PROXY_URL, {
       method: 'POST',
@@ -88,7 +92,7 @@ export async function generateArticle(
         max_tokens: 4096,
         stream: false,
       }),
-      signal: options.signal,
+      signal: controller.signal,
     });
 
     if (!response.ok) {
@@ -135,11 +139,15 @@ export async function generateArticle(
 
     return article;
   } catch (err: unknown) {
+    clearTimeout(timeoutId);
     if (err instanceof DOMException && err.name === 'AbortError') {
+      options.onError?.('请求超时，请重试');
       return null;
     }
     const message = err instanceof Error ? err.message : '未知错误';
     options.onError?.(message);
     return null;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
