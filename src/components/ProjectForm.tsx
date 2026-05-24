@@ -52,9 +52,9 @@ export default function ProjectForm({ editingId, onClose }: ProjectFormProps) {
     if (!form.title.trim() || !form.topic.trim()) return;
 
     if (editingId) {
-      ProjectActions.updateProject(editingId, form);
+      await ProjectActions.updateProject(editingId, form);
     } else {
-      const id = ProjectActions.addProject(form);
+      const id = await ProjectActions.addProject(form);
       ProjectActions.setActiveProject(id);
     }
     onClose();
