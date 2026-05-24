@@ -23,9 +23,12 @@ export default function ArticlePreview({ onClose }: ArticlePreviewProps) {
   if (!article) return null;
 
   const handleShowVersions = async () => {
-    await ArticleActions.loadVersions(activeProject.id);
-    console.log('Versions loaded:', state.articleVersions[activeProject.id]);
     setShowVersions(true);
+    try {
+      await ArticleActions.loadVersions(activeProject.id);
+    } catch (err) {
+      console.error('Failed to load versions:', err);
+    }
   };
 
   const handleViewVersion = async (version: ArticleVersion) => {

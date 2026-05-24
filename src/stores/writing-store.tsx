@@ -211,8 +211,13 @@ export function WritingProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'SET_ARTICLE_VERSIONS', projectId, versions });
     }, []),
     loadVersions: useCallback(async (projectId: string) => {
-      const versions = await api.articlesApi.getVersions(projectId);
-      dispatch({ type: 'SET_ARTICLE_VERSIONS', projectId, versions });
+      try {
+        const versions = await api.articlesApi.getVersions(projectId);
+        dispatch({ type: 'SET_ARTICLE_VERSIONS', projectId, versions });
+      } catch (err) {
+        console.error('loadVersions failed:', err);
+        throw err;
+      }
     }, []),
     getVersion: useCallback(async (projectId: string, versionId: string) => {
       return await api.articlesApi.getVersion(projectId, versionId);
