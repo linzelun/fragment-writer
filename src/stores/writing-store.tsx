@@ -1,5 +1,5 @@
 import { createContext, useContext, useReducer, useEffect, useCallback, type ReactNode } from 'react';
-import type { WritingProject, Fragment, ArticleOutput, ArticleVersion } from '../types';
+import type { WritingProject, Fragment, ArticleOutput } from '../types';
 import * as api from '../services/api';
 
 interface WritingState {
@@ -7,7 +7,6 @@ interface WritingState {
   activeProjectId: string | null;
   fragments: Fragment[];
   articles: Record<string, ArticleOutput>;
-  articleVersions: ArticleVersion[];
   sidebarOpen: boolean;
   loading: boolean;
 }
@@ -17,7 +16,6 @@ const initialState: WritingState = {
   activeProjectId: null,
   fragments: [],
   articles: {},
-  articleVersions: [],
   sidebarOpen: false,
   loading: true,
 };
@@ -27,7 +25,6 @@ type Action =
   | { type: 'SET_FRAGMENTS'; fragments: Fragment[] }
   | { type: 'SET_ACTIVE_PROJECT'; id: string | null }
   | { type: 'SAVE_ARTICLE'; projectId: string; article: ArticleOutput }
-  | { type: 'SET_VERSIONS'; versions: ArticleVersion[] }
   | { type: 'TOGGLE_SIDEBAR' };
 
 function reducer(state: WritingState, action: Action): WritingState {
@@ -43,8 +40,6 @@ function reducer(state: WritingState, action: Action): WritingState {
         ...state,
         articles: { ...state.articles, [action.projectId]: action.article },
       };
-    case 'SET_VERSIONS':
-      return { ...state, articleVersions: action.versions };
     case 'TOGGLE_SIDEBAR':
       return { ...state, sidebarOpen: !state.sidebarOpen };
     default:
@@ -73,9 +68,6 @@ interface WritingContextValue {
   };
   ArticleActions: {
     saveArticle: (projectId: string, article: ArticleOutput) => Promise<void>;
-  };
-  VersionActions: {
-    loadVersions: () => Promise<void>;
   };
 }
 
@@ -201,19 +193,6 @@ export function WritingProvider({ children }: { children: ReactNode }) {
     }, []),
   };
 
-  const VersionActions = {
-    loadVersions: useCallback(async () => {
-      if (!state.activeProjectId) return;
-      try {
-        const versions = await api.versionsApi.list(state.activeProjectId);
-        dispatch({ type: 'SET_VERSIONS', versions });
-      } catch (err) {
-        console.error('Failed to load versions:', err);
-        dispatch({ type: 'SET_VERSIONS', versions: [] });
-      }
-    }, [state.activeProjectId]),
-  };
-
   return (
     <WritingContext.Provider
       value={{
@@ -225,7 +204,6 @@ export function WritingProvider({ children }: { children: ReactNode }) {
         ProjectActions,
         FragmentActions,
         ArticleActions,
-        VersionActions,
       }}
     >
       {children}
