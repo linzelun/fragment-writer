@@ -110,10 +110,25 @@ export function WritingProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'SET_FRAGMENTS', fragments: [] });
       return;
     }
+    // Load fragments
     api.fragmentsApi.listByProject(state.activeProjectId).then(fragments => {
       dispatch({ type: 'SET_FRAGMENTS', fragments });
     }).catch(err => {
       console.error('Failed to load fragments:', err);
+    });
+    // Load article
+    api.articlesApi.get(state.activeProjectId).then(article => {
+      if (article) {
+        dispatch({ type: 'SAVE_ARTICLE', projectId: state.activeProjectId!, article });
+      }
+    }).catch(err => {
+      console.error('Failed to load article:', err);
+    });
+    // Load article versions
+    api.articlesApi.getVersions(state.activeProjectId).then(versions => {
+      dispatch({ type: 'SET_ARTICLE_VERSIONS', projectId: state.activeProjectId!, versions });
+    }).catch(err => {
+      console.error('Failed to load article versions:', err);
     });
   }, [state.activeProjectId]);
 
