@@ -2,6 +2,7 @@ export interface Fragment {
   id: string;
   projectId: string;
   content: string;
+  source?: string;
   note?: string;
   tags: string[];
   createdAt: string;
