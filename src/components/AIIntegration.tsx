@@ -8,7 +8,7 @@ interface AIIntegrationProps {
 }
 
 export default function AIIntegration({ onArticleGenerated }: AIIntegrationProps) {
-  const { activeProject, sortedFragments, ArticleActions } = useWriting();
+  const { state, dispatch, activeProject, sortedFragments, ArticleActions } = useWriting();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -29,7 +29,9 @@ export default function AIIntegration({ onArticleGenerated }: AIIntegrationProps
       });
 
       if (article) {
-        await ArticleActions.saveArticle(activeProject.id, article);
+        // Save to server (non-blocking for popup)
+        ArticleActions.saveArticle(activeProject.id, article).catch(() => {});
+        dispatch({ type: 'SAVE_ARTICLE', projectId: activeProject.id, article });
         onArticleGenerated();
       }
     } catch {
