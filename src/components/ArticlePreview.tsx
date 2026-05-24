@@ -120,6 +120,7 @@ export default function ArticlePreview({ onClose }: ArticlePreviewProps) {
               <button
                 onClick={async () => {
                   await ArticleActions.loadVersions(activeProject.id);
+                  console.log('Versions after refresh:', state.articleVersions[activeProject.id]);
                 }}
                 className="text-xs text-amber-600 hover:text-amber-700 underline"
               >
