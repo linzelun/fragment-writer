@@ -1,4 +1,4 @@
-import type { WritingProject, Fragment, ArticleOutput, ArticleVersion } from '../types';
+import type { WritingProject, Fragment, ArticleOutput } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -33,6 +33,4 @@ export const articlesApi = {
   get: (projectId: string) => api<ArticleOutput | null>(`/api/articles/${projectId}`),
   save: (data: ArticleOutput & { projectId: string }) =>
     api<ArticleOutput>('/api/articles', { method: 'POST', body: JSON.stringify(data) }),
-  getVersions: (projectId: string) => api<ArticleVersion[]>(`/api/articles/${projectId}/versions`),
-  getVersion: (projectId: string, versionId: string) => api<ArticleOutput>(`/api/articles/${projectId}/versions/${versionId}`),
 };
