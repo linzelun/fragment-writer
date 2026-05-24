@@ -16,18 +16,18 @@ export default function ProjectList({ onClose }: ProjectListProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-ink-200">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-ink-200 dark:border-ink-800">
         <div className="flex items-center gap-3">
           {onClose && (
-            <button onClick={onClose} className="p-1 -ml-1 rounded-lg hover:bg-ink-100 transition-colors">
-              <ChevronLeft size={20} className="text-ink-500" />
+            <button onClick={onClose} className="p-1 -ml-1 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors">
+              <ChevronLeft size={20} className="text-ink-500 dark:text-ink-400" />
             </button>
           )}
-          <h2 className="text-lg font-bold text-ink-900">写作项目</h2>
+          <h2 className="text-lg font-bold text-ink-900 dark:text-ink-100">写作项目</h2>
         </div>
         <button
           onClick={() => { setShowForm(true); setEditingId(null); }}
-          className="w-8 h-8 rounded-lg bg-ink-900 text-white flex items-center justify-center hover:bg-ink-800 transition-colors"
+          className="w-8 h-8 rounded-lg bg-ink-900 dark:bg-ink-100 dark:text-ink-900 text-white flex items-center justify-center hover:bg-ink-800 dark:hover:bg-white transition-colors"
         >
           <Plus size={18} />
         </button>
@@ -46,8 +46,8 @@ export default function ProjectList({ onClose }: ProjectListProps) {
         {state.projects.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
             <span className="text-4xl mb-4">✍️</span>
-            <p className="text-sm text-ink-500 mb-1">还没有写作项目</p>
-            <p className="text-xs text-ink-400">创建一个项目，开始记录你的思考碎片</p>
+            <p className="text-sm text-ink-500 dark:text-ink-400 mb-1">还没有写作项目</p>
+            <p className="text-xs text-ink-400 dark:text-ink-500">创建一个项目，开始记录你的思考碎片</p>
           </div>
         ) : (
           <div className="space-y-1">
@@ -56,8 +56,8 @@ export default function ProjectList({ onClose }: ProjectListProps) {
                 key={project.id}
                 className={`group relative rounded-xl px-4 py-3.5 cursor-pointer transition-all duration-200 ${
                   state.activeProjectId === project.id
-                    ? 'bg-ink-900 text-white shadow-lg'
-                    : 'hover:bg-ink-100 text-ink-800'
+                    ? 'bg-ink-900 dark:bg-ink-100 text-white dark:text-ink-900 shadow-lg'
+                    : 'hover:bg-ink-100 dark:hover:bg-ink-800 text-ink-800 dark:text-ink-200'
                 }`}
                 onClick={() => {
                   ProjectActions.setActiveProject(project.id);
@@ -67,12 +67,12 @@ export default function ProjectList({ onClose }: ProjectListProps) {
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <h3 className={`font-bold truncate text-sm ${
-                      state.activeProjectId === project.id ? 'text-white' : 'text-ink-900'
+                      state.activeProjectId === project.id ? 'text-white dark:text-ink-900' : 'text-ink-900 dark:text-ink-100'
                     }`}>
                       {project.title || '未命名项目'}
                     </h3>
                     <p className={`text-xs mt-0.5 truncate ${
-                      state.activeProjectId === project.id ? 'text-white/60' : 'text-ink-500'
+                      state.activeProjectId === project.id ? 'text-white/60 dark:text-ink-700' : 'text-ink-500 dark:text-ink-400'
                     }`}>
                       {project.topic || '未设置主题'}
                     </p>
@@ -82,8 +82,8 @@ export default function ProjectList({ onClose }: ProjectListProps) {
                       onClick={(e) => { e.stopPropagation(); setEditingId(project.id); }}
                       className={`p-1.5 rounded-lg transition-colors ${
                         state.activeProjectId === project.id
-                          ? 'hover:bg-white/15 text-white/80'
-                          : 'hover:bg-ink-200 text-ink-400'
+                          ? 'hover:bg-white/15 dark:hover:bg-ink-900/20 text-white/80 dark:text-ink-700'
+                          : 'hover:bg-ink-200 dark:hover:bg-ink-700 text-ink-400 dark:text-ink-500'
                       }`}
                     >
                       <Edit3 size={14} />
@@ -92,8 +92,8 @@ export default function ProjectList({ onClose }: ProjectListProps) {
                       onClick={(e) => { e.stopPropagation(); setDeleteConfirm(project.id); }}
                       className={`p-1.5 rounded-lg transition-colors ${
                         state.activeProjectId === project.id
-                          ? 'hover:bg-white/15 text-white/80'
-                          : 'hover:bg-ink-200 text-ink-400'
+                          ? 'hover:bg-white/15 dark:hover:bg-ink-900/20 text-white/80 dark:text-ink-700'
+                          : 'hover:bg-ink-200 dark:hover:bg-ink-700 text-ink-400 dark:text-ink-500'
                       }`}
                     >
                       <Trash2 size={14} />
@@ -113,13 +113,13 @@ export default function ProjectList({ onClose }: ProjectListProps) {
       {/* Delete Confirm Modal */}
       {deleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setDeleteConfirm(null)}>
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl animate-fade-up" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-ink-900 mb-2">删除项目</h3>
-            <p className="text-sm text-ink-500 mb-6">删除后，该项目下的所有写作素材也将被删除。此操作不可撤销。</p>
+          <div className="bg-white dark:bg-ink-900 rounded-2xl p-6 max-w-sm w-full shadow-xl animate-fade-up" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-ink-900 dark:text-ink-100 mb-2">删除项目</h3>
+            <p className="text-sm text-ink-500 dark:text-ink-400 mb-6">删除后，该项目下的所有写作素材也将被删除。此操作不可撤销。</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="flex-1 h-10 rounded-xl border border-ink-200 text-ink-600 font-medium text-sm hover:bg-ink-50 transition-colors"
+                className="flex-1 h-10 rounded-xl border border-ink-200 dark:border-ink-700 text-ink-600 dark:text-ink-300 font-medium text-sm hover:bg-ink-50 dark:hover:bg-ink-800 transition-colors"
               >
                 取消
               </button>

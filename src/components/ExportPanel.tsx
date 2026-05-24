@@ -69,14 +69,14 @@ export default function ExportPanel({ article, projectTitle }: ExportPanelProps)
       <div className="flex items-center gap-1.5">
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-ink-100 text-ink-600 text-xs font-medium hover:bg-ink-200 transition-colors"
+          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-ink-100 dark:bg-ink-800 text-ink-600 dark:text-ink-300 text-xs font-medium hover:bg-ink-200 dark:hover:bg-ink-700 transition-colors"
         >
           {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
           {copied ? '已复制' : '复制'}
         </button>
         <button
           onClick={() => setOpen(!open)}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-ink-900 text-white text-xs font-medium hover:bg-ink-800 transition-colors"
+          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-ink-900 dark:bg-ink-100 dark:text-ink-900 text-white text-xs font-medium hover:bg-ink-800 dark:hover:bg-white transition-colors"
         >
           <Download size={14} />
           导出
@@ -87,15 +87,15 @@ export default function ExportPanel({ article, projectTitle }: ExportPanelProps)
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1.5 w-40 bg-white rounded-xl border border-ink-200 shadow-lg py-1 z-20 animate-fade-in">
+          <div className="absolute right-0 top-full mt-1.5 w-40 bg-white dark:bg-ink-900 rounded-xl border border-ink-200 dark:border-ink-800 shadow-lg py-1 z-20 animate-fade-in">
             {EXPORT_FORMATS.map(fmt => (
               <button
                 key={fmt.type}
                 onClick={() => handleDownload(fmt)}
-                className="w-full text-left px-4 py-2.5 text-sm text-ink-700 hover:bg-ink-50 transition-colors"
+                className="w-full text-left px-4 py-2.5 text-sm text-ink-700 dark:text-ink-200 hover:bg-ink-50 dark:hover:bg-ink-800 transition-colors"
               >
                 {fmt.label}
-                <span className="text-ink-400 text-xs ml-2">{fmt.extension}</span>
+                <span className="text-ink-400 dark:text-ink-500 text-xs ml-2">{fmt.extension}</span>
               </button>
             ))}
           </div>

@@ -1,34 +1,56 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useWriting } from '../stores/writing-store';
+import { useTheme } from '../contexts/ThemeContext';
 import ProjectList from '../components/ProjectList';
 import FragmentInput from '../components/FragmentInput';
 import FragmentList from '../components/FragmentList';
 import AIIntegration from '../components/AIIntegration';
 import ArticlePreview from '../components/ArticlePreview';
 import EmptyState from '../components/EmptyState';
-import { Menu, Sparkles, BookOpen, ChevronRight } from 'lucide-react';
+import SearchBar from '../components/SearchBar';
+import { Menu, Sparkles, BookOpen, ChevronRight, Moon, Sun, Search } from 'lucide-react';
 
 export default function WritingStudio() {
   const { state, activeProject, sortedFragments } = useWriting();
+  const { isDark, toggle } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showArticle, setShowArticle] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const hasArticle = activeProject && state.articles[activeProject.id];
+
+  const filteredFragments = useMemo(() => {
+    if (!searchQuery.trim()) return sortedFragments;
+    const q = searchQuery.toLowerCase();
+    return sortedFragments.filter(
+      f =>
+        f.content.toLowerCase().includes(q) ||
+        f.source?.toLowerCase().includes(q) ||
+        f.tags?.some((t: string) => t.toLowerCase().includes(q))
+    );
+  }, [sortedFragments, searchQuery]);
 
   // No active project — show project list
   if (!activeProject) {
     return (
       <div className="min-h-screen bg-ink-50">
         {/* Minimal top bar */}
-        <header className="sticky top-0 z-20 bg-ink-50/90 backdrop-blur-md border-b border-ink-200/60">
+        <header className="sticky top-0 z-20 bg-ink-50/90 dark:bg-ink-950/90 backdrop-blur-md border-b border-ink-200/60 dark:border-ink-800/60">
           <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <span className="text-xl">✍️</span>
-              <h1 className="font-extrabold text-lg text-ink-900 tracking-tight">碎片写作</h1>
-              <span className="hidden sm:inline text-xs text-ink-400 font-medium bg-ink-200/50 px-2 py-0.5 rounded-md">
+              <h1 className="font-extrabold text-lg text-ink-900 dark:text-ink-100 tracking-tight">碎片写作</h1>
+              <span className="hidden sm:inline text-xs text-ink-400 dark:text-ink-500 font-medium bg-ink-200/50 dark:bg-ink-800/50 px-2 py-0.5 rounded-md">
                 积思成文
               </span>
             </div>
+            <button
+              onClick={toggle}
+              className="p-2 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors"
+              title={isDark ? '切换亮色模式' : '切换暗色模式'}
+            >
+              {isDark ? <Sun size={16} className="text-ink-400" /> : <Moon size={16} className="text-ink-500" />}
+            </button>
           </div>
         </header>
 
@@ -82,20 +104,20 @@ export default function WritingStudio() {
 
   // Active project workspace
   return (
-    <div className="min-h-screen bg-ink-50">
+    <div className="min-h-screen bg-ink-50 dark:bg-ink-950">
       {/* Top Bar */}
-      <header className="sticky top-0 z-20 bg-ink-50/90 backdrop-blur-md border-b border-ink-200/60">
+      <header className="sticky top-0 z-20 bg-ink-50/90 dark:bg-ink-950/90 backdrop-blur-md border-b border-ink-200/60 dark:border-ink-800/60">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5 min-w-0">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="p-1.5 -ml-1 rounded-lg hover:bg-ink-100 transition-colors shrink-0"
+              className="p-1.5 -ml-1 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors shrink-0"
             >
-              <Menu size={20} className="text-ink-500" />
+              <Menu size={20} className="text-ink-500 dark:text-ink-400" />
             </button>
             <div className="min-w-0">
-              <h1 className="font-extrabold text-sm text-ink-900 truncate">{activeProject.title}</h1>
-              <p className="text-xs text-ink-400 truncate">{activeProject.topic}</p>
+              <h1 className="font-extrabold text-sm text-ink-900 dark:text-ink-100 truncate">{activeProject.title}</h1>
+              <p className="text-xs text-ink-400 dark:text-ink-500 truncate">{activeProject.topic}</p>
             </div>
           </div>
 
@@ -104,13 +126,20 @@ export default function WritingStudio() {
             {hasArticle && (
               <button
                 onClick={() => setShowArticle(true)}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-100 text-amber-700 text-xs font-bold hover:bg-amber-200 transition-colors shrink-0"
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-bold hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors shrink-0"
               >
                 <Sparkles size={13} />
                 <span className="hidden sm:inline">查看文章</span>
               </button>
             )}
-            <div className="text-xs text-ink-400 font-medium bg-ink-200/50 px-2 py-0.5 rounded-md shrink-0">
+            <button
+              onClick={toggle}
+              className="p-1.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors shrink-0"
+              title={isDark ? '切换亮色模式' : '切换暗色模式'}
+            >
+              {isDark ? <Sun size={15} className="text-ink-400" /> : <Moon size={15} className="text-ink-500" />}
+            </button>
+            <div className="text-xs text-ink-400 dark:text-ink-500 font-medium bg-ink-200/50 dark:bg-ink-800/50 px-2 py-0.5 rounded-md shrink-0">
               {sortedFragments.length} 条素材
             </div>
           </div>
@@ -122,8 +151,17 @@ export default function WritingStudio() {
         {/* Quick input */}
         <FragmentInput />
 
+        {/* Search bar */}
+        {sortedFragments.length > 0 && (
+          <SearchBar
+            value={searchQuery}
+            onChange={setSearchQuery}
+            resultCount={searchQuery ? filteredFragments.length : undefined}
+          />
+        )}
+
         {/* Fragment list */}
-        <FragmentList />
+        <FragmentList fragments={filteredFragments} />
 
         {/* AI Integration */}
         <AIIntegration onArticleGenerated={() => setShowArticle(true)} />
@@ -133,7 +171,7 @@ export default function WritingStudio() {
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-          <div className="relative w-80 max-w-[85vw] bg-white h-full shadow-2xl animate-slide-up">
+          <div className="relative w-80 max-w-[85vw] bg-white dark:bg-ink-900 h-full shadow-2xl animate-slide-up">
             <ProjectList onClose={() => setSidebarOpen(false)} />
           </div>
         </div>
