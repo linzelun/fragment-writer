@@ -22,8 +22,9 @@ export default function ArticlePreview({ onClose }: ArticlePreviewProps) {
 
   if (!article) return null;
 
-  const handleShowVersions = () => {
-    ArticleActions.loadVersions(activeProject.id);
+  const handleShowVersions = async () => {
+    await ArticleActions.loadVersions(activeProject.id);
+    console.log('Versions loaded:', state.articleVersions[activeProject.id]);
     setShowVersions(true);
   };
 
@@ -114,7 +115,17 @@ export default function ArticlePreview({ onClose }: ArticlePreviewProps) {
             </button>
           </div>
           {versions.length === 0 ? (
-            <p className="text-xs text-ink-400 dark:text-ink-500 py-2">暂无历史版本</p>
+            <div className="py-4 text-center">
+              <p className="text-xs text-ink-400 dark:text-ink-500 mb-2">暂无历史版本</p>
+              <button
+                onClick={async () => {
+                  await ArticleActions.loadVersions(activeProject.id);
+                }}
+                className="text-xs text-amber-600 hover:text-amber-700 underline"
+              >
+                刷新
+              </button>
+            </div>
           ) : (
             <div className="space-y-1 max-h-48 overflow-y-auto">
               {versions.map((v) => (

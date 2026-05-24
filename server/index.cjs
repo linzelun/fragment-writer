@@ -146,6 +146,25 @@ app.get('/api/articles/:projectId', (req, res) => {
 app.post('/api/articles', (req, res) => {
   const { projectId, title, content, summary, generatedAt, fragmentCount } = req.body;
   
+  // Ensure article_versions table exists
+  const tableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='article_versions'").get();
+  if (!tableExists) {
+    db.exec(`
+      CREATE TABLE article_versions (
+        id TEXT PRIMARY KEY,
+        projectId TEXT NOT NULL,
+        version INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        summary TEXT DEFAULT '',
+        generatedAt TEXT NOT NULL,
+        fragmentCount INTEGER DEFAULT 0,
+        createdAt TEXT NOT NULL
+      );
+      CREATE INDEX idx_article_versions_project ON article_versions(projectId, version);
+    `);
+  }
+  
   // Save to current article
   db.prepare(
     'INSERT OR REPLACE INTO articles (projectId, title, content, summary, generatedAt, fragmentCount) VALUES (?, ?, ?, ?, ?, ?)'
@@ -162,6 +181,8 @@ app.post('/api/articles', (req, res) => {
     'INSERT INTO article_versions (id, projectId, version, title, content, summary, generatedAt, fragmentCount, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
   ).run(versionId, projectId, nextVersion, title, content, summary, generatedAt, fragmentCount, now);
   
+  console.log(`[API] Saved article version ${nextVersion} for project ${projectId}`);
+  
   // Keep only last 10 versions
   db.prepare(
     'DELETE FROM article_versions WHERE projectId = ? AND id NOT IN (SELECT id FROM article_versions WHERE projectId = ? ORDER BY version DESC LIMIT 10)'
@@ -172,8 +193,33 @@ app.post('/api/articles', (req, res) => {
 });
 
 app.get('/api/articles/:projectId/versions', (req, res) => {
-  const rows = db.prepare('SELECT id, version, title, summary, generatedAt, fragmentCount, createdAt FROM article_versions WHERE projectId = ? ORDER BY version DESC').all(req.params.projectId);
-  res.json(rows);
+  try {
+    // Check if table exists
+    const tableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='article_versions'").get();
+    if (!tableExists) {
+      console.log('[API] article_versions table does not exist, creating...');
+      db.exec(`
+        CREATE TABLE article_versions (
+          id TEXT PRIMARY KEY,
+          projectId TEXT NOT NULL,
+          version INTEGER NOT NULL,
+          title TEXT NOT NULL,
+          content TEXT NOT NULL,
+          summary TEXT DEFAULT '',
+          generatedAt TEXT NOT NULL,
+          fragmentCount INTEGER DEFAULT 0,
+          createdAt TEXT NOT NULL
+        );
+        CREATE INDEX idx_article_versions_project ON article_versions(projectId, version);
+      `);
+    }
+    const rows = db.prepare('SELECT id, version, title, summary, generatedAt, fragmentCount, createdAt FROM article_versions WHERE projectId = ? ORDER BY version DESC').all(req.params.projectId);
+    console.log(`[API] Get versions for project ${req.params.projectId}:`, rows.length, 'versions');
+    res.json(rows);
+  } catch (err) {
+    console.error(`[API] Error getting versions for project ${req.params.projectId}:`, err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.get('/api/articles/:projectId/versions/:versionId', (req, res) => {
