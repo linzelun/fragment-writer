@@ -49,6 +49,19 @@ db.exec(`
     generatedAt TEXT NOT NULL,
     fragmentCount INTEGER DEFAULT 0
   );
+  CREATE TABLE IF NOT EXISTS article_versions (
+    id TEXT PRIMARY KEY,
+    projectId TEXT NOT NULL,
+    version INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    summary TEXT DEFAULT '',
+    generatedAt TEXT NOT NULL,
+    fragmentCount INTEGER DEFAULT 0,
+    createdAt TEXT NOT NULL,
+    FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_article_versions_project ON article_versions(projectId, version);
 `);
 
 app.get('/api/projects', (req, res) => {
@@ -123,10 +136,43 @@ app.get('/api/articles/:projectId', (req, res) => {
 
 app.post('/api/articles', (req, res) => {
   const { projectId, title, content, summary, generatedAt, fragmentCount } = req.body;
+  
+  // Save to current article
   db.prepare(
     'INSERT OR REPLACE INTO articles (projectId, title, content, summary, generatedAt, fragmentCount) VALUES (?, ?, ?, ?, ?, ?)'
   ).run(projectId, title, content, summary, generatedAt, fragmentCount);
+  
+  // Get next version number
+  const versionResult = db.prepare('SELECT MAX(version) as maxVersion FROM article_versions WHERE projectId = ?').get(projectId);
+  const nextVersion = (versionResult?.maxVersion || 0) + 1;
+  
+  // Save version history
+  const versionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const now = new Date().toISOString();
+  db.prepare(
+    'INSERT INTO article_versions (id, projectId, version, title, content, summary, generatedAt, fragmentCount, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(versionId, projectId, nextVersion, title, content, summary, generatedAt, fragmentCount, now);
+  
+  // Keep only last 10 versions
+  db.prepare(
+    'DELETE FROM article_versions WHERE projectId = ? AND id NOT IN (SELECT id FROM article_versions WHERE projectId = ? ORDER BY version DESC LIMIT 10)'
+  ).run(projectId, projectId);
+  
   const article = db.prepare('SELECT * FROM articles WHERE projectId = ?').get(projectId);
+  res.json(article);
+});
+
+app.get('/api/articles/:projectId/versions', (req, res) => {
+  const rows = db.prepare('SELECT id, version, title, summary, generatedAt, fragmentCount, createdAt FROM article_versions WHERE projectId = ? ORDER BY version DESC').all(req.params.projectId);
+  res.json(rows);
+});
+
+app.get('/api/articles/:projectId/versions/:versionId', (req, res) => {
+  const article = db.prepare('SELECT * FROM article_versions WHERE projectId = ? AND id = ?').get(req.params.projectId, req.params.versionId);
+  if (!article) {
+    res.status(404).json({ error: 'Version not found' });
+    return;
+  }
   res.json(article);
 });
 

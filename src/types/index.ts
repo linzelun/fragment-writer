@@ -28,6 +28,17 @@ export interface ArticleOutput {
   fragmentCount: number;
 }
 
+export interface ArticleVersion {
+  id: string;
+  projectId: string;
+  version: number;
+  title: string;
+  summary: string;
+  generatedAt: string;
+  fragmentCount: number;
+  createdAt: string;
+}
+
 export interface AIStreamChunk {
   type: 'thinking' | 'content' | 'done' | 'error';
   text?: string;

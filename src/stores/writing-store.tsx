@@ -1,5 +1,5 @@
 import { createContext, useContext, useReducer, useState, useEffect, useCallback, type ReactNode } from 'react';
-import type { WritingProject, Fragment, ArticleOutput } from '../types';
+import type { WritingProject, Fragment, ArticleOutput, ArticleVersion } from '../types';
 import * as api from '../services/api';
 
 interface WritingState {
@@ -7,6 +7,7 @@ interface WritingState {
   activeProjectId: string | null;
   fragments: Fragment[];
   articles: Record<string, ArticleOutput>;
+  articleVersions: Record<string, ArticleVersion[]>;
   sidebarOpen: boolean;
   loading: boolean;
 }
@@ -16,6 +17,7 @@ const initialState: WritingState = {
   activeProjectId: null,
   fragments: [],
   articles: {},
+  articleVersions: {},
   sidebarOpen: false,
   loading: true,
 };
@@ -25,6 +27,7 @@ type Action =
   | { type: 'SET_FRAGMENTS'; fragments: Fragment[] }
   | { type: 'SET_ACTIVE_PROJECT'; id: string | null }
   | { type: 'SAVE_ARTICLE'; projectId: string; article: ArticleOutput }
+  | { type: 'SET_ARTICLE_VERSIONS'; projectId: string; versions: ArticleVersion[] }
   | { type: 'TOGGLE_SIDEBAR' };
 
 function reducer(state: WritingState, action: Action): WritingState {
@@ -39,6 +42,11 @@ function reducer(state: WritingState, action: Action): WritingState {
       return {
         ...state,
         articles: { ...state.articles, [action.projectId]: action.article },
+      };
+    case 'SET_ARTICLE_VERSIONS':
+      return {
+        ...state,
+        articleVersions: { ...state.articleVersions, [action.projectId]: action.versions },
       };
     case 'TOGGLE_SIDEBAR':
       return { ...state, sidebarOpen: !state.sidebarOpen };
@@ -68,6 +76,8 @@ interface WritingContextValue {
   };
   ArticleActions: {
     saveArticle: (projectId: string, article: ArticleOutput) => Promise<void>;
+    loadVersions: (projectId: string) => Promise<void>;
+    getVersion: (projectId: string, versionId: string) => Promise<ArticleOutput>;
   };
 }
 
@@ -177,6 +187,16 @@ export function WritingProvider({ children }: { children: ReactNode }) {
     saveArticle: useCallback(async (projectId: string, article: ArticleOutput) => {
       await api.articlesApi.save({ ...article, projectId });
       dispatch({ type: 'SAVE_ARTICLE', projectId, article });
+      // Reload versions after saving
+      const versions = await api.articlesApi.getVersions(projectId);
+      dispatch({ type: 'SET_ARTICLE_VERSIONS', projectId, versions });
+    }, []),
+    loadVersions: useCallback(async (projectId: string) => {
+      const versions = await api.articlesApi.getVersions(projectId);
+      dispatch({ type: 'SET_ARTICLE_VERSIONS', projectId, versions });
+    }, []),
+    getVersion: useCallback(async (projectId: string, versionId: string) => {
+      return await api.articlesApi.getVersion(projectId, versionId);
     }, []),
   };
 
