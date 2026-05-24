@@ -100,6 +100,10 @@ export function WritingProvider({ children }: { children: ReactNode }) {
     api.projectsApi.list().then(projects => {
       dispatch({ type: 'SET_PROJECTS', projects });
       dispatch({ type: 'SET_FRAGMENTS', fragments: [] });
+      // Auto-activate first project
+      if (projects.length > 0) {
+        dispatch({ type: 'SET_ACTIVE_PROJECT', id: projects[0].id });
+      }
     }).catch(err => {
       console.error('Failed to load projects:', err);
     });

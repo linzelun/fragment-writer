@@ -30,11 +30,10 @@ export default function WritingStudio() {
     );
   }, [sortedFragments, searchQuery]);
 
-  // No active project — show project list
+  // No active project — only happens when no projects exist
   if (!activeProject) {
     return (
       <div className="min-h-screen bg-ink-50">
-        {/* Minimal top bar */}
         <header className="sticky top-0 z-20 bg-ink-50/90 dark:bg-ink-950/90 backdrop-blur-md border-b border-ink-200/60 dark:border-ink-800/60">
           <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
@@ -55,41 +54,22 @@ export default function WritingStudio() {
         </header>
 
         <div className="max-w-2xl mx-auto px-4 py-12">
-          {state.projects.length === 0 ? (
-            <EmptyState
-              icon="✍️"
-              title="开始你的碎片写作之旅"
-              description="创建一个写作项目，随时记录零散的想法和素材，AI 帮你整合为完整文章。"
-              action={
-                <button
-                  onClick={() => setSidebarOpen(true)}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-ink-900 text-white text-sm font-bold hover:bg-ink-800 transition-colors"
-                >
-                  <BookOpen size={16} />
-                  创建第一个项目
-                </button>
-              }
-            />
-          ) : (
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="w-full flex items-center justify-between p-5 bg-white rounded-2xl border border-ink-200 shadow-sm hover:border-ink-300 transition-all group animate-fade-in"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-ink-100 flex items-center justify-center group-hover:bg-amber-100 transition-colors">
-                  <BookOpen size={20} className="text-ink-500 group-hover:text-amber-600 transition-colors" />
-                </div>
-                <div className="text-left">
-                  <p className="font-bold text-sm text-ink-900">选择写作项目</p>
-                  <p className="text-xs text-ink-500 mt-0.5">共 {state.projects.length} 个项目</p>
-                </div>
-              </div>
-              <ChevronRight size={18} className="text-ink-400" />
-            </button>
-          )}
+          <EmptyState
+            icon="✍️"
+            title="开始你的碎片写作之旅"
+            description="创建一个写作项目，随时记录零散的想法和素材，AI 帮你整合为完整文章。"
+            action={
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-ink-900 text-white text-sm font-bold hover:bg-ink-800 transition-colors"
+              >
+                <BookOpen size={16} />
+                创建第一个项目
+              </button>
+            }
+          />
         </div>
 
-        {/* Sidebar */}
         {sidebarOpen && (
           <div className="fixed inset-0 z-50 flex">
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
