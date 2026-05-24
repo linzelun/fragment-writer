@@ -102,16 +102,6 @@ export default function WritingStudio() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Quick access to generated article */}
-            {hasArticle && (
-              <button
-                onClick={() => setShowArticle(true)}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-bold hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors shrink-0"
-              >
-                <Sparkles size={13} />
-                <span className="hidden sm:inline">查看文章</span>
-              </button>
-            )}
             <button
               onClick={toggle}
               className="p-1.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors shrink-0"
@@ -127,7 +117,26 @@ export default function WritingStudio() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-2xl mx-auto px-4 py-6 pb-32 space-y-6">
+      <main className="max-w-2xl mx-auto px-4 py-6 pb-24 space-y-6">
+        {/* Generated article banner */}
+        {hasArticle && (
+          <button
+            onClick={() => setShowArticle(true)}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors animate-fade-in"
+          >
+            <div className="w-9 h-9 rounded-xl bg-amber-200 dark:bg-amber-800/50 flex items-center justify-center shrink-0">
+              <Sparkles size={18} className="text-amber-700 dark:text-amber-400" />
+            </div>
+            <div className="text-left flex-1 min-w-0">
+              <p className="text-sm font-bold text-amber-900 dark:text-amber-300 truncate">
+                {state.articles[activeProject.id]?.title}
+              </p>
+              <p className="text-xs text-amber-600 dark:text-amber-500">已生成文章 · 点击阅读</p>
+            </div>
+            <ChevronRight size={18} className="text-amber-400 shrink-0" />
+          </button>
+        )}
+
         {/* Quick input */}
         <FragmentInput />
 
@@ -142,10 +151,14 @@ export default function WritingStudio() {
 
         {/* Fragment list */}
         <FragmentList fragments={filteredFragments} />
-
-        {/* AI Integration */}
-        <AIIntegration onArticleGenerated={() => setShowArticle(true)} />
       </main>
+
+      {/* Sticky AI bottom bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-30 bg-ink-50/95 dark:bg-ink-950/95 backdrop-blur-md border-t border-ink-200/60 dark:border-ink-800/60 px-4 py-3">
+        <div className="max-w-2xl mx-auto">
+          <AIIntegration onArticleGenerated={() => setShowArticle(true)} compact />
+        </div>
+      </div>
 
       {/* Sidebar */}
       {sidebarOpen && (

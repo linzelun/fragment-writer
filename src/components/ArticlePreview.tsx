@@ -1,5 +1,5 @@
 import { useWriting } from '../stores/writing-store';
-import { Clock, FileText, ArrowLeft } from 'lucide-react';
+import { Clock, FileText, ArrowLeft, TrendingUp, Award } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import ExportPanel from './ExportPanel';
 import TableOfContents from './TableOfContents';
@@ -86,6 +86,85 @@ export default function ArticlePreview({ onClose }: ArticlePreviewProps) {
             <div className="mt-8 sm:mt-10 p-4 sm:p-5 bg-white dark:bg-ink-900 rounded-2xl border border-ink-200 dark:border-ink-800 shadow-sm">
               <h3 className="text-xs font-bold text-ink-500 dark:text-ink-400 uppercase tracking-wider mb-2">文章摘要</h3>
               <p className="text-sm text-ink-700 dark:text-ink-300 leading-relaxed">{article.summary}</p>
+            </div>
+          )}
+
+          {/* Style Score Card */}
+          {article.styleScore !== undefined && (
+            <div className={`mt-6 sm:mt-8 p-4 sm:p-5 rounded-2xl border shadow-sm ${
+              article.styleScore >= 80 
+                ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-900/30'
+                : article.styleScore >= 60 
+                  ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-900/30'
+                  : 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-900/30'
+            }`}>
+              <div className="flex items-center gap-3 mb-3">
+                <Award size={20} className={
+                  article.styleScore >= 80 
+                    ? 'text-green-600 dark:text-green-400' 
+                    : article.styleScore >= 60 
+                      ? 'text-amber-600 dark:text-amber-400'
+                      : 'text-red-600 dark:text-red-400'
+                } />
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-ink-600 dark:text-ink-300">
+                    莫迪亚诺风格评分
+                  </h3>
+                  <p className="text-xs text-ink-500 dark:text-ink-400 mt-0.5">
+                    {article.styleScore >= 80 
+                      ? '优秀 - 高度符合莫迪亚诺风格' 
+                      : article.styleScore >= 60 
+                        ? '良好 - 基本符合风格要求'
+                        : '需优化 - 风格特征不够明显'
+                    }
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                <div className="flex items-baseline gap-1.5">
+                  <span className={`text-3xl font-bold ${
+                    article.styleScore >= 80 
+                      ? 'text-green-600 dark:text-green-400' 
+                      : article.styleScore >= 60 
+                        ? 'text-amber-600 dark:text-amber-400'
+                        : 'text-red-600 dark:text-red-400'
+                  }`}>
+                    {article.styleScore}
+                  </span>
+                  <span className="text-sm text-ink-500 dark:text-ink-400">/100</span>
+                </div>
+                
+                <div className="flex-1 h-2 bg-ink-100 dark:bg-ink-800 rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      article.styleScore >= 80 
+                        ? 'bg-green-500' 
+                        : article.styleScore >= 60 
+                          ? 'bg-amber-500'
+                          : 'bg-red-500'
+                    }`}
+                    style={{ width: `${article.styleScore}%` }}
+                  />
+                </div>
+                
+                <TrendingUp size={16} className={
+                  article.styleScore >= 80 
+                    ? 'text-green-500' 
+                    : article.styleScore >= 60 
+                      ? 'text-amber-500'
+                      : 'text-red-500'
+                } />
+              </div>
+
+              <div className="mt-3 pt-3 border-t border-inherit">
+                <p className="text-xs text-ink-600 dark:text-ink-300 leading-relaxed">
+                  {article.styleScore >= 90 && '✨ 极具莫迪亚诺神韵，文字如浸湿的老照片般朦胧动人。'}
+                  {article.styleScore >= 80 && article.styleScore < 90 && '📖 很好地捕捉了莫迪亚诺的克制与留白，记忆的不确定性处理得当。'}
+                  {article.styleScore >= 60 && article.styleScore < 80 && '📝 具备基本的风格特征，建议进一步强化物质细节和不确定性表达。'}
+                  {article.styleScore < 60 && '⚠️ 风格特征较弱，建议重新生成或手动调整以更贴近莫迪亚诺风格。'}
+                </p>
+              </div>
             </div>
           )}
         </div>

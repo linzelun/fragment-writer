@@ -37,10 +37,14 @@ export default function FragmentInput() {
     setExpanded(false);
   };
 
+  // Collapse on Escape, submit on Ctrl+Enter
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       handleSubmit();
+    } else if (e.key === 'Escape') {
+      setExpanded(false);
+      setContent('');
     }
   };
 

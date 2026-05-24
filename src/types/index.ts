@@ -27,6 +27,7 @@ export interface ArticleOutput {
   summary: string;
   generatedAt: string;
   fragmentCount: number;
+  styleScore?: number; // 莫迪亚诺风格评分 (0-100)
 }
 
 export interface ArticleVersion {

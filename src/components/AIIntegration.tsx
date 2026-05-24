@@ -1,16 +1,19 @@
 import { useState, useRef } from 'react';
 import { useWriting } from '../stores/writing-store';
-import { generateArticle } from '../services/ai';
-import { Sparkles, Loader2, AlertCircle, X } from 'lucide-react';
+import { generateWithReview } from '../services/ai';
+import { Sparkles, Loader2, AlertCircle, X, CheckCircle2, TrendingUp } from 'lucide-react';
 
 interface AIIntegrationProps {
   onArticleGenerated: () => void;
+  compact?: boolean;
 }
 
-export default function AIIntegration({ onArticleGenerated }: AIIntegrationProps) {
+export default function AIIntegration({ onArticleGenerated, compact }: AIIntegrationProps) {
   const { state, dispatch, activeProject, sortedFragments, ArticleActions } = useWriting();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [thinkingText, setThinkingText] = useState<string>('');
+  const [styleScore, setStyleScore] = useState<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   if (!activeProject) return null;
@@ -20,18 +23,28 @@ export default function AIIntegration({ onArticleGenerated }: AIIntegrationProps
 
     setLoading(true);
     setError(null);
+    setThinkingText('');
+    setStyleScore(null);
     abortRef.current = new AbortController();
 
     try {
-      const article = await generateArticle(activeProject, sortedFragments, {
+      const result = await generateWithReview(activeProject, sortedFragments, {
         signal: abortRef.current.signal,
         onError: (msg) => setError(msg),
+        onThinking: (text) => setThinkingText(text),
+        onReviewScore: (score) => setStyleScore(score),
       });
 
-      if (article) {
+      if (result) {
+        // Add style score to article
+        const articleWithScore = {
+          ...result.article,
+          styleScore: result.reviewScore,
+        };
+        
         // Save to server (non-blocking for popup)
-        ArticleActions.saveArticle(activeProject.id, article).catch(() => {});
-        dispatch({ type: 'SAVE_ARTICLE', projectId: activeProject.id, article });
+        ArticleActions.saveArticle(activeProject.id, articleWithScore).catch(() => {});
+        dispatch({ type: 'SAVE_ARTICLE', projectId: activeProject.id, article: articleWithScore });
         onArticleGenerated();
       }
     } catch {
@@ -48,6 +61,65 @@ export default function AIIntegration({ onArticleGenerated }: AIIntegrationProps
   };
 
   const fragmentCount = sortedFragments.length;
+
+  if (compact) {
+    return (
+      <div className="flex items-center gap-3">
+        {/* Error in compact mode */}
+        {error && (
+          <div className="absolute bottom-full left-0 right-0 mb-2 flex items-start gap-2 p-2.5 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 animate-fade-in">
+            <AlertCircle size={14} className="text-red-500 dark:text-red-400 shrink-0 mt-0.5" />
+            <p className="text-xs text-red-600 dark:text-red-400 flex-1">{error}</p>
+            <button onClick={() => setError(null)} className="shrink-0 p-0.5 text-red-400 dark:text-red-500 hover:text-red-600 dark:hover:text-red-400">
+              <X size={12} />
+            </button>
+          </div>
+        )}
+
+        {/* Loading */}
+        {loading ? (
+          <div className="flex items-center gap-2.5 flex-1">
+            <Loader2 size={18} className="text-amber-600 dark:text-amber-400 animate-spin shrink-0" />
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-medium text-amber-800 dark:text-amber-400">
+                {thinkingText || 'AI 正在整合...'}
+              </span>
+              {styleScore !== null && (
+                <div className="flex items-center gap-1 mt-0.5">
+                  <TrendingUp size={12} className={styleScore >= 80 ? 'text-green-500' : styleScore >= 60 ? 'text-amber-500' : 'text-red-500'} />
+                  <span className={`text-xs font-medium ${styleScore >= 80 ? 'text-green-600' : styleScore >= 60 ? 'text-amber-600' : 'text-red-600'}`}>
+                    风格评分: {styleScore}/100
+                  </span>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={handleCancel}
+              className="ml-auto px-3 py-1 rounded-lg border border-amber-200 dark:border-amber-900/50 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
+            >
+              取消
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-ink-500 dark:text-ink-400 truncate">
+                {fragmentCount > 0 ? `${fragmentCount} 条素材` : '暂无素材'}
+              </p>
+            </div>
+            <button
+              onClick={handleGenerate}
+              disabled={fragmentCount === 0}
+              className="shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-ink-900 dark:bg-ink-100 dark:text-ink-900 text-white font-bold text-sm hover:bg-ink-800 dark:hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              <Sparkles size={15} />
+              AI 生成文章
+            </button>
+          </>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white dark:bg-ink-900 rounded-2xl border border-ink-200 dark:border-ink-800 p-5 shadow-sm animate-fade-in">
@@ -81,18 +153,41 @@ export default function AIIntegration({ onArticleGenerated }: AIIntegrationProps
 
       {/* Loading State */}
       {loading && (
-        <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 mb-3 animate-fade-in">
-          <Loader2 size={20} className="text-amber-600 dark:text-amber-400 animate-spin shrink-0" />
-          <div>
-            <p className="text-sm font-medium text-amber-800 dark:text-amber-400">AI 正在整合你的素材...</p>
-            <p className="text-xs text-amber-600 dark:text-amber-500 mt-0.5">这可能需要 10-30 秒</p>
+        <div className="flex flex-col gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 mb-3 animate-fade-in">
+          <div className="flex items-center gap-3">
+            <Loader2 size={20} className="text-amber-600 dark:text-amber-400 animate-spin shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-400">
+                {thinkingText || 'AI 正在整合你的素材...'}
+              </p>
+              {styleScore !== null && (
+                <div className="flex items-center gap-2 mt-1.5">
+                  <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+                    styleScore >= 80 
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
+                      : styleScore >= 60 
+                        ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                        : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                  }`}>
+                    <TrendingUp size={12} />
+                    莫迪亚诺风格评分: {styleScore}/100
+                  </div>
+                  {styleScore >= 80 && (
+                    <CheckCircle2 size={14} className="text-green-500" />
+                  )}
+                </div>
+              )}
+            </div>
+            <button
+              onClick={handleCancel}
+              className="shrink-0 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-900/50 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
+            >
+              取消
+            </button>
           </div>
-          <button
-            onClick={handleCancel}
-            className="ml-auto px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-900/50 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
-          >
-            取消
-          </button>
+          <p className="text-xs text-amber-600 dark:text-amber-500 pl-8">
+            生成初稿 → 风格审查 → 智能优化
+          </p>
         </div>
       )}
 

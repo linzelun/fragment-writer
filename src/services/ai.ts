@@ -227,3 +227,201 @@ export async function generateArticle(
     clearTimeout(timeoutId);
   }
 }
+
+const REVIEW_PROMPT = `你是一位帕特里克·莫迪亚诺风格的严格审查者。请对以下文章进行风格审查。
+
+## 审查维度（每项满分，总分100分）
+
+1. **记忆不确定性**（20分）：是否使用"似乎"、"大概"、"我记得"等不确定表达？
+2. **句子长度控制**（15分）：平均句长≤25字？短段落占比≥60%？
+3. **物质细节密度**（20分）：每200字≥1个可触摸的具体细节？
+4. **情感克制度**（15分）：避免直接情感表达？展示而非讲述？
+5. **时间跳跃**（10分）：≥2次非线性时间跳跃？
+6. **开放性结尾**（10分）：以细节/画面结束而非总结？
+7. **禁止项违规**（-10分/项）：感叹号/逻辑连接词/形容词堆砌/成语/总结性语句
+
+## 输出格式
+
+请严格按照以下JSON格式输出（不要输出其他内容）：
+{
+  "score": 数字,
+  "breakdown": {
+    "memory_uncertainty": {"score": 数字, "feedback": "具体反馈"},
+    "sentence_length": {"score": 数字, "feedback": "具体反馈"},
+    "material_details": {"score": 数字, "feedback": "具体反馈"},
+    "emotional_restraint": {"score": 数字, "feedback": "具体反馈"},
+    "time_jumps": {"score": 数字, "feedback": "具体反馈"},
+    "open_ending": {"score": 数字, "feedback": "具体反馈"},
+    "violations": {"score": 数字, "count": 数字, "items": ["违规项列表"]}
+  },
+  "highlights": ["符合风格的亮点1", "亮点2", "亮点3"],
+  "improvements": ["改进建议1", "建议2"]
+}
+
+## 待审查文章
+
+`;
+
+export async function reviewStyle(articleContent: string): Promise<{
+  score: number;
+  breakdown: Record<string, any>;
+  highlights: string[];
+  improvements: string[];
+} | null> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+  try {
+    const response = await fetch(PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [
+          { role: 'system', content: '你是一位严格的文学风格审查专家。只输出JSON格式的结果，不要输出其他内容。' },
+          { role: 'user', content: REVIEW_PROMPT + articleContent },
+        ],
+        temperature: 0.3,
+        max_tokens: 2000,
+        stream: false,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const text = data.choices?.[0]?.message?.content || '';
+    
+    try {
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+    } catch {
+      // JSON parse failed
+    }
+    return null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+const REWRITE_PROMPT = `请以帕特里克·莫迪亚诺的风格重写以下文章。
+
+## 莫迪亚诺风格核心要求
+- 短句（平均≤20字），每段不超过3句
+- 记忆的不确定性："似乎"、"大概"、"我记得"
+- 物质细节：街道名、气味、物品、光线、声音
+- 克制的情感：用动作/细节代替直接表达
+- 时间跳跃：非线性叙事
+- 开放式结尾：以画面/声音结束
+- 禁止：感叹号、逻辑连接词、形容词堆砌、总结性语句
+
+## 原文（需要重写）
+
+`;
+
+export async function rewriteWithStyle(
+  project: WritingProject,
+  originalArticle: ArticleOutput,
+  feedback: string[],
+  signal?: AbortSignal
+): Promise<ArticleOutput | null> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 120000);
+
+  try {
+    const response = await fetch(PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [
+          { role: 'system', content: buildSystemPrompt(project) },
+          { role: 'user', content: REWRITE_PROMPT + `标题：${originalArticle.title}\n\n正文：${originalArticle.content}\n\n主要问题：${feedback.join('；')}` },
+        ],
+        temperature: 0.8,
+        max_tokens: 4096,
+        stream: false,
+      }),
+      signal: signal || controller.signal,
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const fullText: string = data.choices?.[0]?.message?.content || '';
+    if (!fullText) return null;
+
+    let title = originalArticle.title;
+    let content = fullText;
+    let summary = '';
+
+    const titleMatch = fullText.match(/^##\s+(.+?)[\n\r]/);
+    if (titleMatch) {
+      title = titleMatch[1].trim();
+      content = fullText.slice(titleMatch[0].length).trim();
+    }
+
+    const separatorIdx = content.lastIndexOf('\n---\n');
+    if (separatorIdx > 0) {
+      summary = content.slice(separatorIdx + 5).trim();
+      content = content.slice(0, separatorIdx).trim();
+    }
+
+    return {
+      title,
+      content,
+      summary,
+      generatedAt: new Date().toISOString(),
+      fragmentCount: originalArticle.fragmentCount,
+    };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+export async function generateWithReview(
+  project: WritingProject,
+  fragments: Fragment[],
+  options: AIOptions & { onReviewScore?: (score: number) => void } = {}
+): Promise<{ article: ArticleOutput; reviewScore: number } | null> {
+  options.onThinking?.('正在生成初稿...');
+  
+  const article = await generateArticle(project, fragments, options);
+  if (!article) return null;
+
+  options.onThinking?.('正在进行风格审查...');
+
+  const review = await reviewStyle(article.content);
+  
+  if (review && options.onReviewScore) {
+    options.onReviewScore(review.score);
+  }
+
+  if (review && review.score < 70) {
+    options.onThinking?.(`风格得分 ${review.score}/100，正在优化...`);
+    
+    const improved = await rewriteWithStyle(
+      project,
+      article,
+      review.improvements,
+      options.signal
+    );
+
+    if (improved) {
+      const improvedReview = await reviewStyle(improved.content);
+      if (improvedReview && options.onReviewScore) {
+        options.onReviewScore(improvedReview.score);
+      }
+      return { article: improved, reviewScore: improvedReview?.score || review.score };
+    }
+  }
+
+  return { article, reviewScore: review?.score || 0 };
+}

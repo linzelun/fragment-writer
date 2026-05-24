@@ -101,16 +101,16 @@ const FragmentCard = memo(function FragmentCard({ fragment, index }: FragmentCar
                 <span className="text-ink-500 dark:text-ink-400 truncate max-w-[120px]">{fragment.note}</span>
               )}
             </div>
-            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex items-center gap-0.5">
               <button
                 onClick={() => setEditing(true)}
-                className="p-1.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 text-ink-400 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 text-ink-300 dark:text-ink-600 hover:text-ink-600 dark:hover:text-ink-300 transition-colors"
               >
                 <Edit3 size={14} />
               </button>
               <button
                 onClick={handleDelete}
-                className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-ink-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-ink-300 dark:text-ink-600 hover:text-red-500 dark:hover:text-red-400 transition-colors"
               >
                 <Trash2 size={14} />
               </button>
