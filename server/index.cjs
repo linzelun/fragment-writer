@@ -19,6 +19,28 @@ const dbPath = process.env.SQLITE_PATH || path.join(__dirname, 'data.db');
 const db = new Database(dbPath);
 
 db.pragma('journal_mode = WAL');
+
+// Migration: create article_versions table if not exists
+const tableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='article_versions'").get();
+if (!tableExists) {
+  db.exec(`
+    CREATE TABLE article_versions (
+      id TEXT PRIMARY KEY,
+      projectId TEXT NOT NULL,
+      version INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      summary TEXT DEFAULT '',
+      generatedAt TEXT NOT NULL,
+      fragmentCount INTEGER DEFAULT 0,
+      createdAt TEXT NOT NULL,
+      FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE
+    );
+    CREATE INDEX idx_article_versions_project ON article_versions(projectId, version);
+  `);
+  console.log('Migration: created article_versions table');
+}
+
 db.exec(`
   CREATE TABLE IF NOT EXISTS projects (
     id TEXT PRIMARY KEY,
@@ -49,19 +71,6 @@ db.exec(`
     generatedAt TEXT NOT NULL,
     fragmentCount INTEGER DEFAULT 0
   );
-  CREATE TABLE IF NOT EXISTS article_versions (
-    id TEXT PRIMARY KEY,
-    projectId TEXT NOT NULL,
-    version INTEGER NOT NULL,
-    title TEXT NOT NULL,
-    content TEXT NOT NULL,
-    summary TEXT DEFAULT '',
-    generatedAt TEXT NOT NULL,
-    fragmentCount INTEGER DEFAULT 0,
-    createdAt TEXT NOT NULL,
-    FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE
-  );
-  CREATE INDEX IF NOT EXISTS idx_article_versions_project ON article_versions(projectId, version);
 `);
 
 app.get('/api/projects', (req, res) => {
