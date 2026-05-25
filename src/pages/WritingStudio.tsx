@@ -166,39 +166,62 @@ export default function WritingStudio() {
 
       <main className="max-w-2xl mx-auto px-4 py-6 pb-24 space-y-6">
         {hasArticle && (
-          <button
-            onClick={() => setShowArticle(true)}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors animate-fade-in"
-          >
-            <div className="w-9 h-9 rounded-xl bg-amber-200 dark:bg-amber-800/50 flex items-center justify-center shrink-0">
-              <Sparkles size={18} className="text-amber-700 dark:text-amber-400" />
+          <div className="rounded-2xl bg-gradient-to-r from-amber-50 to-amber-100/50 dark:from-amber-900/20 dark:to-amber-800/10 border border-amber-200/80 dark:border-amber-800/50 p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-200/70 dark:bg-amber-800/40 flex items-center justify-center">
+                  <Sparkles size={18} className="text-amber-700 dark:text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-amber-900 dark:text-amber-300">已生成文章</h3>
+                  <p className="text-xs text-amber-600 dark:text-amber-500 mt-0.5">{state.articles[activeProject.id]?.title}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowArticle(true)}
+                className="px-4 py-2 rounded-lg bg-amber-500 text-white text-sm font-medium hover:bg-amber-600 transition-colors"
+              >
+                阅读文章
+              </button>
             </div>
-            <div className="text-left flex-1 min-w-0">
-              <p className="text-sm font-bold text-amber-900 dark:text-amber-300 truncate">
-                {state.articles[activeProject.id]?.title}
-              </p>
-              <p className="text-xs text-amber-600 dark:text-amber-500">已生成文章 · 点击阅读</p>
-            </div>
-            <ChevronRight size={18} className="text-amber-400 shrink-0" />
-          </button>
+          </div>
         )}
 
-        <FragmentInput />
+        <div className="rounded-2xl bg-white dark:bg-ink-900 border border-ink-200/60 dark:border-ink-800/60 p-4 shadow-sm">
+          <h2 className="text-sm font-bold text-ink-900 dark:text-ink-100 mb-3">记录新素材</h2>
+          <FragmentInput />
+        </div>
 
         {sortedFragments.length > 0 && (
-          <SearchBar
-            value={searchQuery}
-            onChange={setSearchQuery}
-            resultCount={searchQuery ? filteredFragments.length : undefined}
-          />
+          <div className="rounded-2xl bg-white dark:bg-ink-900 border border-ink-200/60 dark:border-ink-800/60 p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-bold text-ink-900 dark:text-ink-100">素材搜索</h2>
+              <span className="text-xs text-ink-400 dark:text-ink-500">
+                {sortedFragments.length} 条素材
+              </span>
+            </div>
+            <SearchBar
+              value={searchQuery}
+              onChange={setSearchQuery}
+              resultCount={searchQuery ? filteredFragments.length : undefined}
+            />
+          </div>
         )}
 
-        <FragmentList fragments={filteredFragments} />
+        <div className="rounded-2xl bg-white dark:bg-ink-900 border border-ink-200/60 dark:border-ink-800/60 overflow-hidden shadow-sm">
+          <div className="px-4 py-3 border-b border-ink-200/60 dark:border-ink-800/60">
+            <h2 className="text-sm font-bold text-ink-900 dark:text-ink-100">素材列表</h2>
+          </div>
+          <FragmentList fragments={filteredFragments} />
+        </div>
       </main>
 
       <div className="fixed bottom-0 left-0 right-0 z-30 bg-ink-50/95 dark:bg-ink-950/95 backdrop-blur-md border-t border-ink-200/60 dark:border-ink-800/60 px-4 py-3">
         <div className="max-w-2xl mx-auto">
-          <AIIntegration onArticleGenerated={() => setShowArticle(true)} compact />
+          <div className="rounded-2xl bg-white dark:bg-ink-900 border border-ink-200/60 dark:border-ink-800/60 shadow-lg p-4">
+            <h3 className="text-sm font-bold text-ink-900 dark:text-ink-100 mb-3">AI 写作助手</h3>
+            <AIIntegration onArticleGenerated={() => setShowArticle(true)} compact />
+          </div>
         </div>
       </div>
 
