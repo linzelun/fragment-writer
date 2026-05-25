@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useWriting } from '../stores/writing-store';
-import { Plus, Trash2, Edit3, ChevronLeft, FileText, Clock } from 'lucide-react';
+import { useWriting, generateId } from '../stores/writing-store';
+import { Plus, Trash2, Edit3, BookOpen, ChevronLeft, FileText, Clock } from 'lucide-react';
 import ProjectForm from './ProjectForm';
 
 interface ProjectListProps {
@@ -84,14 +84,37 @@ export default function ProjectList({ onClose }: ProjectListProps) {
                       {project.topic || '未设置主题'}
                     </p>
                     
-                    {/* Simple status line */}
-                    <div className={`flex items-center gap-3 mt-2 text-xs ${
+                    {/* Progress bar for fragment count */}
+                    <div className="mt-2 mb-1.5">
+                      <div className="flex items-center justify-between text-xs mb-0.5">
+                        <span className={`font-medium ${
+                          state.activeProjectId === project.id ? 'text-white/80 dark:text-ink-600' : 'text-ink-500 dark:text-ink-500'
+                        }`}>
+                          素材进度
+                        </span>
+                        <span className={`font-bold ${
+                          state.activeProjectId === project.id ? 'text-white dark:text-ink-900' : 'text-ink-700 dark:text-ink-300'
+                        }`}>
+                          {(project.fragmentCount ?? 0)} 条
+                        </span>
+                      </div>
+                      <div className={`h-1 rounded-full overflow-hidden ${
+                        state.activeProjectId === project.id ? 'bg-white/20 dark:bg-ink-900/20' : 'bg-ink-200 dark:bg-ink-700'
+                      }`}>
+                        <div 
+                          className={`h-full transition-all duration-500 ${
+                            state.activeProjectId === project.id 
+                              ? 'bg-amber-300 dark:bg-amber-500' 
+                              : 'bg-ink-400 dark:bg-ink-500'
+                          }`}
+                          style={{ width: `${Math.min((project.fragmentCount ?? 0) * 10, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className={`flex items-center justify-between text-xs ${
                       state.activeProjectId === project.id ? 'text-white/50 dark:text-ink-600' : 'text-ink-400 dark:text-ink-500'
                     }`}>
-                      <span className="flex items-center gap-1">
-                        <FileText size={10} />
-                        {project.fragmentCount === 0 ? '待开始' : '写作中'}
-                      </span>
                       <span className="flex items-center gap-1">
                         <Clock size={10} />
                         {project.lastFragmentAt 
@@ -107,6 +130,10 @@ export default function ProjectList({ onClose }: ProjectListProps) {
                             })()
                           : '从未更新'
                         }
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <FileText size={10} />
+                        {project.fragmentCount === 0 ? '待开始' : '写作中'}
                       </span>
                     </div>
                   </div>
