@@ -468,8 +468,8 @@ export async function generateWithReview(
 
     let currentArticle = article;
     let currentScore = reviewScore;
-    let currentImprovements = review.improvements;
-    let currentReviewData = review;
+    let currentImprovements: string[] = review.improvements;
+    let currentReviewData: { score: number; breakdown: Record<string, any>; highlights: string[]; improvements: string[]; } | null = review;
 
     for (let attempt = 0; attempt < 3 && currentScore < 80; attempt++) {
       options.onThinking?.(`第 ${attempt + 1} 次优化中...`);
