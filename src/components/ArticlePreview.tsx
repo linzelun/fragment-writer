@@ -157,8 +157,8 @@ export default function ArticlePreview({ onClose }: ArticlePreviewProps) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-2xl mx-auto px-4 sm:px-5 py-6 sm:py-8">
+      <div className="flex-1 overflow-y-auto pb-20 sm:pb-0">
+        <div className="max-w-2xl mx-auto px-3 sm:px-5 py-4 sm:py-8">
           <article className="prose prose-sm prose-stone dark:prose-invert prose-headings:font-bold prose-headings:text-ink-900 dark:prose-headings:text-ink-100 prose-p:text-ink-800 dark:prose-p:text-ink-200 prose-p:leading-relaxed prose-blockquote:border-l-amber-400 prose-blockquote:bg-amber-50 dark:prose-blockquote:bg-amber-900/10 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:rounded-r-lg prose-blockquote:not-italic prose-a:text-amber-600 dark:prose-a:text-amber-400 max-w-none font-serif">
             <ReactMarkdown
               components={{

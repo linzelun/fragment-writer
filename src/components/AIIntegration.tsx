@@ -79,17 +79,17 @@ export default function AIIntegration({ onArticleGenerated, compact }: AIIntegra
 
         {/* Streaming preview */}
         {loading && streamingContent && (
-          <div className="absolute bottom-full left-0 right-0 mb-2 p-3 rounded-xl bg-white dark:bg-ink-900 border border-amber-200 dark:border-amber-800 shadow-lg animate-fade-in max-h-48 overflow-y-auto z-10">
+          <div className="absolute bottom-full left-0 right-0 mb-2 mx-2 p-3 rounded-xl bg-white dark:bg-ink-900 border border-amber-200 dark:border-amber-800 shadow-lg animate-fade-in max-h-32 sm:max-h-48 overflow-y-auto z-10">
             <div className="flex items-center gap-2 mb-2">
               <Loader2 size={12} className="text-amber-600 dark:text-amber-400 animate-spin" />
-              <span className="text-xs font-medium text-amber-700 dark:text-amber-400">{thinkingText}</span>
+              <span className="text-xs font-medium text-amber-700 dark:text-amber-400 truncate flex-1">{thinkingText}</span>
               {styleScore !== null && (
-                <span className={`text-xs ml-auto font-medium ${styleScore >= 80 ? 'text-green-600' : styleScore >= 60 ? 'text-amber-600' : 'text-red-600'}`}>
+                <span className={`text-xs ml-auto font-medium shrink-0 ${styleScore >= 80 ? 'text-green-600' : styleScore >= 60 ? 'text-amber-600' : 'text-red-600'}`}>
                   {styleScore}/100
                 </span>
               )}
             </div>
-            <p className="text-xs text-ink-700 dark:text-ink-300 leading-relaxed whitespace-pre-wrap line-clamp-6">
+            <p className="text-xs text-ink-700 dark:text-ink-300 leading-relaxed whitespace-pre-wrap line-clamp-3 sm:line-clamp-6">
               {streamingContent}
             </p>
           </div>

@@ -164,7 +164,7 @@ export default function WritingStudio() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-6 pb-24 space-y-6">
+      <main className="max-w-2xl mx-auto px-4 py-4 sm:py-6 pb-20 sm:pb-20 space-y-4 sm:space-y-6">
         {hasArticle && (
           <div className="rounded-2xl bg-gradient-to-r from-amber-50 to-amber-100/50 dark:from-amber-900/20 dark:to-amber-800/10 border border-amber-200/80 dark:border-amber-800/50 p-4 shadow-sm">
             <div className="flex items-center justify-between">
@@ -216,12 +216,9 @@ export default function WritingStudio() {
         </div>
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 z-30 bg-ink-50/95 dark:bg-ink-950/95 backdrop-blur-md border-t border-ink-200/60 dark:border-ink-800/60 px-4 py-3">
+      <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-ink-900/95 backdrop-blur-md border-t border-ink-200/60 dark:border-ink-800/60 px-3 sm:px-4 py-2 sm:py-3">
         <div className="max-w-2xl mx-auto">
-          <div className="rounded-2xl bg-white dark:bg-ink-900 border border-ink-200/60 dark:border-ink-800/60 shadow-lg p-4">
-            <h3 className="text-sm font-bold text-ink-900 dark:text-ink-100 mb-3">AI 写作助手</h3>
-            <AIIntegration onArticleGenerated={() => setShowArticle(true)} compact />
-          </div>
+          <AIIntegration onArticleGenerated={() => setShowArticle(true)} compact />
         </div>
       </div>
 
