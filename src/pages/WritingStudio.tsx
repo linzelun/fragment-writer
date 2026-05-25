@@ -164,7 +164,7 @@ export default function WritingStudio() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-4 sm:py-6 pb-20 sm:pb-20 space-y-4 sm:space-y-6">
+      <main className="max-w-2xl mx-auto px-4 py-4 sm:py-6 pb-20 space-y-5 sm:space-y-6">
         {hasArticle && (
           <div className="rounded-2xl bg-gradient-to-r from-amber-50 to-amber-100/50 dark:from-amber-900/20 dark:to-amber-800/10 border border-amber-200/80 dark:border-amber-800/50 p-4 shadow-sm">
             <div className="flex items-center justify-between">
@@ -187,19 +187,17 @@ export default function WritingStudio() {
           </div>
         )}
 
-        <div className="rounded-2xl bg-white dark:bg-ink-900 border border-ink-200/60 dark:border-ink-800/60 p-4 shadow-sm">
-          <h2 className="text-sm font-bold text-ink-900 dark:text-ink-100 mb-3">记录新素材</h2>
-          <FragmentInput />
+        <div className="rounded-2xl bg-white/80 dark:bg-ink-900/80 shadow-sm ring-1 ring-ink-900/5 dark:ring-ink-100/5 overflow-hidden">
+          <div className="px-4 pt-4 pb-2">
+            <h2 className="text-xs font-bold text-ink-400 dark:text-ink-500 uppercase tracking-wider">记录素材</h2>
+          </div>
+          <div className="px-4 pb-4">
+            <FragmentInput />
+          </div>
         </div>
 
         {sortedFragments.length > 0 && (
-          <div className="rounded-2xl bg-white dark:bg-ink-900 border border-ink-200/60 dark:border-ink-800/60 p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-bold text-ink-900 dark:text-ink-100">素材搜索</h2>
-              <span className="text-xs text-ink-400 dark:text-ink-500">
-                {sortedFragments.length} 条素材
-              </span>
-            </div>
+          <div className="px-4 py-3 rounded-2xl bg-white/80 dark:bg-ink-900/80 shadow-sm ring-1 ring-ink-900/5 dark:ring-ink-100/5">
             <SearchBar
               value={searchQuery}
               onChange={setSearchQuery}
@@ -208,9 +206,9 @@ export default function WritingStudio() {
           </div>
         )}
 
-        <div className="rounded-2xl bg-white dark:bg-ink-900 border border-ink-200/60 dark:border-ink-800/60 overflow-hidden shadow-sm">
-          <div className="px-4 py-3 border-b border-ink-200/60 dark:border-ink-800/60">
-            <h2 className="text-sm font-bold text-ink-900 dark:text-ink-100">素材列表</h2>
+        <div className="rounded-2xl bg-white/80 dark:bg-ink-900/80 shadow-sm ring-1 ring-ink-900/5 dark:ring-ink-100/5 overflow-hidden">
+          <div className="px-4 py-3">
+            <h2 className="text-xs font-bold text-ink-400 dark:text-ink-500 uppercase tracking-wider">素材列表</h2>
           </div>
           <FragmentList fragments={filteredFragments} />
         </div>
@@ -218,7 +216,9 @@ export default function WritingStudio() {
 
       <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-ink-900/95 backdrop-blur-md border-t border-ink-200/60 dark:border-ink-800/60 px-3 sm:px-4 py-2 sm:py-3">
         <div className="max-w-2xl mx-auto">
-          <AIIntegration onArticleGenerated={() => setShowArticle(true)} compact />
+          <div className="rounded-xl bg-gradient-to-r from-amber-50/50 to-amber-100/30 dark:from-amber-900/20 dark:to-amber-800/10 p-3 sm:p-4">
+            <AIIntegration onArticleGenerated={() => setShowArticle(true)} compact />
+          </div>
         </div>
       </div>
 

@@ -97,7 +97,7 @@ export default function FragmentInput() {
   }
 
   return (
-    <div className="bg-white dark:bg-ink-900 rounded-xl sm:rounded-2xl border border-ink-200 dark:border-ink-800 shadow-sm animate-fade-up overflow-hidden">
+    <div className="bg-white/80 dark:bg-ink-900/80 rounded-xl sm:rounded-2xl shadow-sm ring-1 ring-ink-900/5 dark:ring-ink-100/5 animate-fade-up overflow-hidden">
       <textarea
         ref={textareaRef}
         value={content}
@@ -185,7 +185,7 @@ export default function FragmentInput() {
         </div>
       )}
 
-      <div className="flex items-center justify-between px-3 sm:px-4 py-2 bg-ink-50 dark:bg-ink-800/50 border-t border-ink-100 dark:border-ink-800">
+      <div className="flex items-center justify-between px-3 sm:px-4 py-2 bg-ink-50/80 dark:bg-ink-800/50">
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setShowOptions(!showOptions)}

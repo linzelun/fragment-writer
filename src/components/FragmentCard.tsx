@@ -47,7 +47,7 @@ const FragmentCard = memo(function FragmentCard({ fragment, index }: FragmentCar
 
   return (
     <div
-      className="group bg-white dark:bg-ink-900 rounded-xl border border-ink-200 dark:border-ink-800 p-4 transition-all duration-200 hover:border-ink-300 dark:hover:border-ink-700 hover:shadow-sm dark:hover:shadow-ink-900/50 animate-fade-up"
+      className="group bg-white/80 dark:bg-ink-900/80 rounded-xl shadow-sm ring-1 ring-ink-900/5 dark:ring-ink-100/5 p-4 transition-all duration-200 hover:shadow-md hover:ring-amber-300/20 dark:hover:ring-amber-600/10 animate-fade-up"
       style={{ animationDelay: `${Math.min(index * 30, 300)}ms` }}
     >
       {editing ? (
@@ -94,7 +94,7 @@ const FragmentCard = memo(function FragmentCard({ fragment, index }: FragmentCar
             </div>
           )}
 
-          <div className="flex items-center justify-between mt-3 pt-2 border-t border-ink-100 dark:border-ink-800">
+          <div className="flex items-center justify-between mt-3 pt-2">
             <div className="flex items-center gap-3 text-xs text-ink-400 dark:text-ink-500">
               <span>{formattedDate}</span>
               {fragment.note && (

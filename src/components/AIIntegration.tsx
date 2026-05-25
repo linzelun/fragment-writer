@@ -167,7 +167,7 @@ export default function AIIntegration({ onArticleGenerated, compact }: AIIntegra
   }
 
   return (
-    <div className="bg-white dark:bg-ink-900 rounded-2xl border border-ink-200 dark:border-ink-800 p-5 shadow-sm animate-fade-in">
+    <div className="bg-white/80 dark:bg-ink-900/80 rounded-2xl shadow-sm ring-1 ring-ink-900/5 dark:ring-ink-100/5 p-5 animate-fade-in">
       <div className="flex items-center gap-2.5 mb-4">
         <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
           <Sparkles size={18} className="text-amber-600 dark:text-amber-400" />
