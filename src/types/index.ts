@@ -19,6 +19,8 @@ export interface WritingProject {
   tone: 'casual' | 'professional' | 'academic' | 'storytelling';
   createdAt: string;
   updatedAt: string;
+  fragmentCount?: number;
+  lastFragmentAt?: string;
 }
 
 export interface ArticleOutput {

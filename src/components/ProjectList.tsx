@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useWriting, generateId } from '../stores/writing-store';
-import { Plus, Trash2, Edit3, BookOpen, ChevronLeft } from 'lucide-react';
+import { Plus, Trash2, Edit3, BookOpen, ChevronLeft, FileText, Clock } from 'lucide-react';
 import ProjectForm from './ProjectForm';
 
 interface ProjectListProps {
@@ -76,6 +76,20 @@ export default function ProjectList({ onClose }: ProjectListProps) {
                     }`}>
                       {project.topic || '未设置主题'}
                     </p>
+                    <div className={`flex items-center gap-3 mt-1 text-xs ${
+                      state.activeProjectId === project.id ? 'text-white/40 dark:text-ink-600' : 'text-ink-400 dark:text-ink-500'
+                    }`}>
+                      <span className="flex items-center gap-1">
+                        <FileText size={10} />
+                        {(project.fragmentCount ?? 0)} 条素材
+                      </span>
+                      {project.lastFragmentAt && (
+                        <span className="flex items-center gap-1">
+                          <Clock size={10} />
+                          {new Date(project.lastFragmentAt).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                     <button

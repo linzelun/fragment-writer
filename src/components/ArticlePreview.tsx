@@ -1,63 +1,162 @@
+import { useState, useEffect } from 'react';
 import { useWriting } from '../stores/writing-store';
-import { Clock, FileText, ArrowLeft, TrendingUp, Award } from 'lucide-react';
+import { Clock, FileText, ArrowLeft, TrendingUp, Award, History, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import ExportPanel from './ExportPanel';
 import TableOfContents from './TableOfContents';
+import type { ArticleOutput } from '../types';
 
 interface ArticlePreviewProps {
   onClose: () => void;
 }
 
+interface VersionSummary {
+  id: string;
+  version: number;
+  title: string;
+  summary: string;
+  generatedAt: string;
+  fragmentCount: number;
+  createdAt: string;
+}
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 export default function ArticlePreview({ onClose }: ArticlePreviewProps) {
   const { activeProject, state } = useWriting();
 
+  const [versions, setVersions] = useState<VersionSummary[]>([]);
+  const [viewingVersion, setViewingVersion] = useState<VersionSummary | null>(null);
+  const [versionContent, setVersionContent] = useState<ArticleOutput | null>(null);
+  const [loadingVersion, setLoadingVersion] = useState(false);
+  const [showVersions, setShowVersions] = useState(false);
+
   if (!activeProject) return null;
 
-  const article = state.articles[activeProject.id];
+  const currentArticle = state.articles[activeProject.id];
+  if (!currentArticle && !viewingVersion) return null;
+
+  const article = versionContent || currentArticle;
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/articles/${activeProject.id}/versions`)
+      .then(r => r.json())
+      .then((data: VersionSummary[]) => setVersions(data))
+      .catch(() => {});
+  }, [activeProject.id]);
+
+  const handleViewVersion = async (v: VersionSummary) => {
+    setLoadingVersion(true);
+    setShowVersions(false);
+    try {
+      const r = await fetch(`${API_BASE}/api/articles/${activeProject.id}/versions/${v.id}`);
+      const data = await r.json();
+      setVersionContent({
+        title: data.title,
+        content: data.content,
+        summary: data.summary,
+        generatedAt: data.generatedAt,
+        fragmentCount: data.fragmentCount,
+        styleScore: undefined,
+      });
+      setViewingVersion(v);
+    } catch {} finally {
+      setLoadingVersion(false);
+    }
+  };
+
+  const handleBackToCurrent = () => {
+    setVersionContent(null);
+    setViewingVersion(null);
+  };
 
   if (!article) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-ink-50 dark:bg-ink-950 animate-fade-in">
-      {/* Header */}
       <div className="bg-white dark:bg-ink-900 border-b border-ink-200 dark:border-ink-800 shrink-0">
-        {/* Top row: back + actions */}
         <div className="flex items-center justify-between px-3 py-2">
-          <button
-            onClick={onClose}
-            className="flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors text-ink-600 dark:text-ink-300"
-          >
-            <ArrowLeft size={18} />
-            <span className="text-sm font-medium">返回</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={viewingVersion ? handleBackToCurrent : onClose}
+              className="flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors text-ink-600 dark:text-ink-300"
+            >
+              <ArrowLeft size={18} />
+              <span className="text-sm font-medium">{viewingVersion ? '回到当前' : '返回'}</span>
+            </button>
+
+            {versions.length > 1 && (
+              <div className="relative">
+                <button
+                  onClick={() => setShowVersions(!showVersions)}
+                  className="flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors text-xs text-ink-500 dark:text-ink-400"
+                >
+                  <History size={14} />
+                  <span>{viewingVersion ? `版本 ${viewingVersion.version}` : `历史 (${versions.length})`}</span>
+                </button>
+
+                {showVersions && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setShowVersions(false)} />
+                    <div className="absolute left-0 top-full mt-1 w-52 bg-white dark:bg-ink-900 rounded-xl border border-ink-200 dark:border-ink-800 shadow-lg py-1 z-20 max-h-60 overflow-y-auto">
+                      {versions.map(v => (
+                        <button
+                          key={v.id}
+                          onClick={() => handleViewVersion(v)}
+                          className="w-full text-left px-3 py-2 hover:bg-ink-50 dark:hover:bg-ink-800 transition-colors"
+                        >
+                          <p className="text-xs font-medium text-ink-800 dark:text-ink-200 truncate">版本 {v.version} · {v.title}</p>
+                          <p className="text-xs text-ink-400 dark:text-ink-500 mt-0.5">
+                            {new Date(v.createdAt).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
 
           <div className="flex items-center gap-1.5">
             <ExportPanel article={article} projectTitle={activeProject.title} />
           </div>
         </div>
 
-        {/* Title row */}
         <div className="px-4 pb-3">
-          <h1 className="font-bold text-lg text-ink-900 dark:text-ink-100 leading-tight">{article.title}</h1>
-          <div className="flex items-center gap-3 mt-1.5 text-xs text-ink-400 dark:text-ink-500">
-            <span className="flex items-center gap-1">
-              <FileText size={11} />
-              {article.fragmentCount} 条素材
-            </span>
-            <span className="flex items-center gap-1">
-              <Clock size={11} />
-              {new Date(article.generatedAt).toLocaleString('zh-CN', {
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </span>
-          </div>
+          {loadingVersion ? (
+            <div className="flex items-center gap-2">
+              <Loader2 size={16} className="text-ink-400 animate-spin" />
+              <span className="text-sm text-ink-400">加载版本...</span>
+            </div>
+          ) : (
+            <>
+              <h1 className="font-bold text-lg text-ink-900 dark:text-ink-100 leading-tight">{article.title}</h1>
+              <div className="flex items-center gap-3 mt-1.5 text-xs text-ink-400 dark:text-ink-500">
+                <span className="flex items-center gap-1">
+                  <FileText size={11} />
+                  {article.fragmentCount} 条素材
+                </span>
+                <span className="flex items-center gap-1">
+                  <Clock size={11} />
+                  {new Date(article.generatedAt).toLocaleString('zh-CN', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
+                {viewingVersion && (
+                  <span className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-medium">
+                    历史版本 v{viewingVersion.version}
+                  </span>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Article Content */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto px-4 sm:px-5 py-6 sm:py-8">
           <article className="prose prose-sm prose-stone dark:prose-invert prose-headings:font-bold prose-headings:text-ink-900 dark:prose-headings:text-ink-100 prose-p:text-ink-800 dark:prose-p:text-ink-200 prose-p:leading-relaxed prose-blockquote:border-l-amber-400 prose-blockquote:bg-amber-50 dark:prose-blockquote:bg-amber-900/10 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:rounded-r-lg prose-blockquote:not-italic prose-a:text-amber-600 dark:prose-a:text-amber-400 max-w-none font-serif">
@@ -81,7 +180,6 @@ export default function ArticlePreview({ onClose }: ArticlePreviewProps) {
             </ReactMarkdown>
           </article>
 
-          {/* Summary Card */}
           {article.summary && (
             <div className="mt-8 sm:mt-10 p-4 sm:p-5 bg-white dark:bg-ink-900 rounded-2xl border border-ink-200 dark:border-ink-800 shadow-sm">
               <h3 className="text-xs font-bold text-ink-500 dark:text-ink-400 uppercase tracking-wider mb-2">文章摘要</h3>
@@ -89,7 +187,6 @@ export default function ArticlePreview({ onClose }: ArticlePreviewProps) {
             </div>
           )}
 
-          {/* Style Score Card */}
           {article.styleScore !== undefined && (
             <div className={`mt-6 sm:mt-8 p-4 sm:p-5 rounded-2xl border shadow-sm ${
               article.styleScore >= 80 
@@ -170,7 +267,6 @@ export default function ArticlePreview({ onClose }: ArticlePreviewProps) {
         </div>
       </div>
 
-      {/* Table of Contents */}
       <TableOfContents content={article.content} />
     </div>
   );

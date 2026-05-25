@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useWriting } from '../stores/writing-store';
 import { generateWithReview } from '../services/ai';
-import { Sparkles, Loader2, AlertCircle, X, CheckCircle2, TrendingUp } from 'lucide-react';
+import { Sparkles, Loader2, AlertCircle, X, CheckCircle2, TrendingUp, BookOpen } from 'lucide-react';
 
 interface AIIntegrationProps {
   onArticleGenerated: () => void;
@@ -13,6 +13,7 @@ export default function AIIntegration({ onArticleGenerated, compact }: AIIntegra
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [thinkingText, setThinkingText] = useState<string>('');
+  const [streamingContent, setStreamingContent] = useState<string>('');
   const [styleScore, setStyleScore] = useState<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -24,6 +25,7 @@ export default function AIIntegration({ onArticleGenerated, compact }: AIIntegra
     setLoading(true);
     setError(null);
     setThinkingText('');
+    setStreamingContent('');
     setStyleScore(null);
     abortRef.current = new AbortController();
 
@@ -32,17 +34,16 @@ export default function AIIntegration({ onArticleGenerated, compact }: AIIntegra
         signal: abortRef.current.signal,
         onError: (msg) => setError(msg),
         onThinking: (text) => setThinkingText(text),
+        onContent: (text) => setStreamingContent(text),
         onReviewScore: (score) => setStyleScore(score),
       });
 
       if (result) {
-        // Add style score to article
         const articleWithScore = {
           ...result.article,
           styleScore: result.reviewScore,
         };
         
-        // Save to server (non-blocking for popup)
         ArticleActions.saveArticle(activeProject.id, articleWithScore).catch(() => {});
         dispatch({ type: 'SAVE_ARTICLE', projectId: activeProject.id, article: articleWithScore });
         onArticleGenerated();
@@ -64,7 +65,7 @@ export default function AIIntegration({ onArticleGenerated, compact }: AIIntegra
 
   if (compact) {
     return (
-      <div className="flex items-center gap-3">
+      <>
         {/* Error in compact mode */}
         {error && (
           <div className="absolute bottom-full left-0 right-0 mb-2 flex items-start gap-2 p-2.5 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 animate-fade-in">
@@ -76,54 +77,73 @@ export default function AIIntegration({ onArticleGenerated, compact }: AIIntegra
           </div>
         )}
 
-        {/* Loading */}
-        {loading ? (
-          <div className="flex items-center gap-2.5 flex-1">
-            <Loader2 size={18} className="text-amber-600 dark:text-amber-400 animate-spin shrink-0" />
-            <div className="flex-1 min-w-0">
-              <span className="text-sm font-medium text-amber-800 dark:text-amber-400">
-                {thinkingText || 'AI 正在整合...'}
-              </span>
+        {/* Streaming preview */}
+        {loading && streamingContent && (
+          <div className="absolute bottom-full left-0 right-0 mb-2 p-3 rounded-xl bg-white dark:bg-ink-900 border border-amber-200 dark:border-amber-800 shadow-lg animate-fade-in max-h-48 overflow-y-auto z-10">
+            <div className="flex items-center gap-2 mb-2">
+              <Loader2 size={12} className="text-amber-600 dark:text-amber-400 animate-spin" />
+              <span className="text-xs font-medium text-amber-700 dark:text-amber-400">{thinkingText}</span>
               {styleScore !== null && (
-                <div className="flex items-center gap-1 mt-0.5">
-                  <TrendingUp size={12} className={styleScore >= 80 ? 'text-green-500' : styleScore >= 60 ? 'text-amber-500' : 'text-red-500'} />
-                  <span className={`text-xs font-medium ${styleScore >= 80 ? 'text-green-600' : styleScore >= 60 ? 'text-amber-600' : 'text-red-600'}`}>
-                    风格评分: {styleScore}/100
-                  </span>
-                </div>
+                <span className={`text-xs ml-auto font-medium ${styleScore >= 80 ? 'text-green-600' : styleScore >= 60 ? 'text-amber-600' : 'text-red-600'}`}>
+                  {styleScore}/100
+                </span>
               )}
             </div>
-            <button
-              onClick={handleCancel}
-              className="ml-auto px-3 py-1 rounded-lg border border-amber-200 dark:border-amber-900/50 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
-            >
-              取消
-            </button>
+            <p className="text-xs text-ink-700 dark:text-ink-300 leading-relaxed whitespace-pre-wrap line-clamp-6">
+              {streamingContent}
+            </p>
           </div>
-        ) : (
-          <>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs text-ink-500 dark:text-ink-400 truncate">
-                {fragmentCount > 0 ? `${fragmentCount} 条素材` : '暂无素材'}
-              </p>
-            </div>
-            <button
-              onClick={handleGenerate}
-              disabled={fragmentCount === 0}
-              className="shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-ink-900 dark:bg-ink-100 dark:text-ink-900 text-white font-bold text-sm hover:bg-ink-800 dark:hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-            >
-              <Sparkles size={15} />
-              AI 生成文章
-            </button>
-          </>
         )}
-      </div>
+
+        <div className="flex items-center gap-3">
+          {/* Loading */}
+          {loading ? (
+            <div className="flex items-center gap-2.5 flex-1">
+              <Loader2 size={18} className="text-amber-600 dark:text-amber-400 animate-spin shrink-0" />
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-medium text-amber-800 dark:text-amber-400">
+                  {thinkingText || 'AI 正在整合...'}
+                </span>
+                {styleScore !== null && (
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <TrendingUp size={12} className={styleScore >= 80 ? 'text-green-500' : styleScore >= 60 ? 'text-amber-500' : 'text-red-500'} />
+                    <span className={`text-xs font-medium ${styleScore >= 80 ? 'text-green-600' : styleScore >= 60 ? 'text-amber-600' : 'text-red-600'}`}>
+                      风格评分: {styleScore}/100
+                    </span>
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={handleCancel}
+                className="ml-auto px-3 py-1 rounded-lg border border-amber-200 dark:border-amber-900/50 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
+              >
+                取消
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-ink-500 dark:text-ink-400 truncate">
+                  {fragmentCount > 0 ? `${fragmentCount} 条素材` : '暂无素材'}
+                </p>
+              </div>
+              <button
+                onClick={handleGenerate}
+                disabled={fragmentCount === 0}
+                className="shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-ink-900 dark:bg-ink-100 dark:text-ink-900 text-white font-bold text-sm hover:bg-ink-800 dark:hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              >
+                <Sparkles size={15} />
+                AI 生成文章
+              </button>
+            </>
+          )}
+        </div>
+      </>
     );
   }
 
   return (
     <div className="bg-white dark:bg-ink-900 rounded-2xl border border-ink-200 dark:border-ink-800 p-5 shadow-sm animate-fade-in">
-      {/* Header */}
       <div className="flex items-center gap-2.5 mb-4">
         <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
           <Sparkles size={18} className="text-amber-600 dark:text-amber-400" />
@@ -138,7 +158,6 @@ export default function AIIntegration({ onArticleGenerated, compact }: AIIntegra
         </div>
       </div>
 
-      {/* Error */}
       {error && (
         <div className="flex items-start gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 mb-3 animate-fade-in">
           <AlertCircle size={16} className="text-red-500 dark:text-red-400 shrink-0 mt-0.5" />
@@ -151,7 +170,6 @@ export default function AIIntegration({ onArticleGenerated, compact }: AIIntegra
         </div>
       )}
 
-      {/* Loading State */}
       {loading && (
         <div className="flex flex-col gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 mb-3 animate-fade-in">
           <div className="flex items-center gap-3">
@@ -185,13 +203,25 @@ export default function AIIntegration({ onArticleGenerated, compact }: AIIntegra
               取消
             </button>
           </div>
+
+          {streamingContent && (
+            <div className="max-h-40 overflow-y-auto rounded-lg bg-white/80 dark:bg-black/20 p-3 border border-amber-200/50 dark:border-amber-800/50">
+              <div className="flex items-center gap-1.5 mb-2">
+                <BookOpen size={11} className="text-amber-500" />
+                <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">实时生成内容</span>
+              </div>
+              <p className="text-xs text-ink-700 dark:text-ink-300 leading-relaxed whitespace-pre-wrap">
+                {streamingContent}
+              </p>
+            </div>
+          )}
+
           <p className="text-xs text-amber-600 dark:text-amber-500 pl-8">
-            生成初稿 → 风格审查 → 智能优化
+            流式生成 → 风格审查 → 智能优化
           </p>
         </div>
       )}
 
-      {/* Generate Button */}
       <button
         onClick={handleGenerate}
         disabled={fragmentCount === 0 || loading}

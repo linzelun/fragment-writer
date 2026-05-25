@@ -30,7 +30,46 @@ export default function WritingStudio() {
     );
   }, [sortedFragments, searchQuery]);
 
-  // No active project — only happens when no projects exist
+  // Global keyboard shortcut: Ctrl+K to toggle search
+  useMemo(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        const searchInput = document.querySelector<HTMLInputElement>('[data-search-bar]');
+        searchInput?.focus();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  if (state.loading) {
+    return (
+      <div className="min-h-screen bg-ink-50 dark:bg-ink-950">
+        <header className="sticky top-0 z-20 bg-ink-50/90 dark:bg-ink-950/90 backdrop-blur-md border-b border-ink-200/60 dark:border-ink-800/60">
+          <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="text-xl">✍️</span>
+              <h1 className="font-extrabold text-lg text-ink-900 dark:text-ink-100 tracking-tight">碎片写作</h1>
+              <span className="hidden sm:inline text-xs text-ink-400 dark:text-ink-500 font-medium bg-ink-200/50 dark:bg-ink-800/50 px-2 py-0.5 rounded-md">
+                积思成文
+              </span>
+            </div>
+            <button onClick={toggle} className="p-2 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors">
+              {isDark ? <Sun size={16} className="text-ink-400" /> : <Moon size={16} className="text-ink-500" />}
+            </button>
+          </div>
+        </header>
+        <div className="max-w-2xl mx-auto px-4 py-12 space-y-4 animate-pulse">
+          <div className="h-16 bg-ink-200 dark:bg-ink-800 rounded-2xl" />
+          <div className="h-32 bg-ink-200 dark:bg-ink-800 rounded-2xl" />
+          <div className="h-24 bg-ink-200 dark:bg-ink-800 rounded-2xl" />
+          <div className="h-24 bg-ink-200 dark:bg-ink-800 rounded-2xl" />
+        </div>
+      </div>
+    );
+  }
+
   if (!activeProject) {
     return (
       <div className="min-h-screen bg-ink-50">
@@ -82,10 +121,8 @@ export default function WritingStudio() {
     );
   }
 
-  // Active project workspace
   return (
     <div className="min-h-screen bg-ink-50 dark:bg-ink-950">
-      {/* Top Bar */}
       <header className="sticky top-0 z-20 bg-ink-50/90 dark:bg-ink-950/90 backdrop-blur-md border-b border-ink-200/60 dark:border-ink-800/60">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -116,9 +153,7 @@ export default function WritingStudio() {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-2xl mx-auto px-4 py-6 pb-24 space-y-6">
-        {/* Generated article banner */}
         {hasArticle && (
           <button
             onClick={() => setShowArticle(true)}
@@ -137,10 +172,8 @@ export default function WritingStudio() {
           </button>
         )}
 
-        {/* Quick input */}
         <FragmentInput />
 
-        {/* Search bar */}
         {sortedFragments.length > 0 && (
           <SearchBar
             value={searchQuery}
@@ -149,18 +182,15 @@ export default function WritingStudio() {
           />
         )}
 
-        {/* Fragment list */}
         <FragmentList fragments={filteredFragments} />
       </main>
 
-      {/* Sticky AI bottom bar */}
       <div className="fixed bottom-0 left-0 right-0 z-30 bg-ink-50/95 dark:bg-ink-950/95 backdrop-blur-md border-t border-ink-200/60 dark:border-ink-800/60 px-4 py-3">
         <div className="max-w-2xl mx-auto">
           <AIIntegration onArticleGenerated={() => setShowArticle(true)} compact />
         </div>
       </div>
 
-      {/* Sidebar */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
@@ -170,7 +200,6 @@ export default function WritingStudio() {
         </div>
       )}
 
-      {/* Article Preview */}
       {showArticle && hasArticle && (
         <ArticlePreview onClose={() => setShowArticle(false)} />
       )}

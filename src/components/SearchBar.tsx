@@ -14,6 +14,7 @@ export default function SearchBar({ value, onChange, placeholder = '搜索素材
         <Search size={15} className="text-ink-400 dark:text-ink-500 shrink-0" />
         <input
           type="text"
+          data-search-bar
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}

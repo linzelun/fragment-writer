@@ -20,6 +20,24 @@ const db = new Database(dbPath);
 
 db.pragma('journal_mode = WAL');
 
+const PROJECT_FIELDS = ['title', 'topic', 'description', 'targetAudience', 'targetLength', 'tone'];
+const FRAGMENT_FIELDS = ['content', 'note', 'tags'];
+
+function jsonError(res, status, message) {
+  res.status(status).json({ error: message });
+}
+
+function wrapRoute(handler) {
+  return async (req, res) => {
+    try {
+      await handler(req, res);
+    } catch (err) {
+      console.error(`[API] ${req.method} ${req.path}:`, err.message);
+      jsonError(res, 500, '服务器内部错误');
+    }
+  };
+}
+
 // Migration: create article_versions table if not exists
 const tableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='article_versions'").get();
 if (!tableExists) {
@@ -73,45 +91,60 @@ db.exec(`
   );
 `);
 
-app.get('/api/projects', (req, res) => {
-  const rows = db.prepare('SELECT * FROM projects ORDER BY updatedAt DESC').all();
+app.get('/api/projects', wrapRoute((req, res) => {
+  const rows = db.prepare(`
+    SELECT p.*, 
+      (SELECT COUNT(*) FROM fragments WHERE projectId = p.id) as fragmentCount,
+      (SELECT MAX(updatedAt) FROM fragments WHERE projectId = p.id) as lastFragmentAt
+    FROM projects p ORDER BY p.updatedAt DESC
+  `).all();
   res.json(rows);
-});
+}));
 
-app.post('/api/projects', (req, res) => {
+app.post('/api/projects', wrapRoute((req, res) => {
   const { id, title, topic, description, targetAudience, targetLength, tone, createdAt, updatedAt } = req.body;
   db.prepare(
     'INSERT INTO projects (id, title, topic, description, targetAudience, targetLength, tone, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
   ).run(id, title, topic, description, targetAudience, targetLength, tone, createdAt, updatedAt);
   const project = db.prepare('SELECT * FROM projects WHERE id = ?').get(id);
   res.json(project);
-});
+}));
 
-app.put('/api/projects/:id', (req, res) => {
+app.put('/api/projects/:id', wrapRoute((req, res) => {
   const { id } = req.params;
   const updates = req.body;
-  const fields = Object.keys(updates).map(k => `${k} = ?`).join(', ');
-  const values = [...Object.values(updates), new Date().toISOString(), id];
+
+  const validUpdates = {};
+  for (const key of PROJECT_FIELDS) {
+    if (key in updates) validUpdates[key] = updates[key];
+  }
+
+  if (Object.keys(validUpdates).length === 0) {
+    return jsonError(res, 400, '没有有效的更新字段');
+  }
+
+  const fields = Object.keys(validUpdates).map(k => `${k} = ?`).join(', ');
+  const values = [...Object.values(validUpdates), new Date().toISOString(), id];
   db.prepare(`UPDATE projects SET ${fields}, updatedAt = ? WHERE id = ?`).run(...values);
   const project = db.prepare('SELECT * FROM projects WHERE id = ?').get(id);
   res.json(project);
-});
+}));
 
-app.delete('/api/projects/:id', (req, res) => {
+app.delete('/api/projects/:id', wrapRoute((req, res) => {
   const { id } = req.params;
   db.prepare('DELETE FROM articles WHERE projectId = ?').run(id);
   db.prepare('DELETE FROM fragments WHERE projectId = ?').run(id);
   db.prepare('DELETE FROM projects WHERE id = ?').run(id);
   res.json({ ok: true });
-});
+}));
 
-app.get('/api/projects/:id/fragments', (req, res) => {
+app.get('/api/projects/:id/fragments', wrapRoute((req, res) => {
   const rows = db.prepare('SELECT * FROM fragments WHERE projectId = ? ORDER BY createdAt DESC').all(req.params.id);
   rows.forEach(row => { row.tags = JSON.parse(row.tags); });
   res.json(rows);
-});
+}));
 
-app.post('/api/fragments', (req, res) => {
+app.post('/api/fragments', wrapRoute((req, res) => {
   const { id, projectId, content, note, tags, createdAt, updatedAt } = req.body;
   db.prepare(
     'INSERT INTO fragments (id, projectId, content, note, tags, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)'
@@ -119,34 +152,43 @@ app.post('/api/fragments', (req, res) => {
   const fragment = db.prepare('SELECT * FROM fragments WHERE id = ?').get(id);
   fragment.tags = JSON.parse(fragment.tags);
   res.json(fragment);
-});
+}));
 
-app.put('/api/fragments/:id', (req, res) => {
+app.put('/api/fragments/:id', wrapRoute((req, res) => {
   const { id } = req.params;
   const updates = req.body;
-  if (updates.tags) updates.tags = JSON.stringify(updates.tags);
-  const fields = Object.keys(updates).map(k => `${k} = ?`).join(', ');
-  const values = [...Object.values(updates), new Date().toISOString(), id];
+
+  const validUpdates = {};
+  for (const key of FRAGMENT_FIELDS) {
+    if (key in updates) validUpdates[key] = updates[key];
+  }
+
+  if (Object.keys(validUpdates).length === 0) {
+    return jsonError(res, 400, '没有有效的更新字段');
+  }
+
+  if (validUpdates.tags) validUpdates.tags = JSON.stringify(validUpdates.tags);
+  const fields = Object.keys(validUpdates).map(k => `${k} = ?`).join(', ');
+  const values = [...Object.values(validUpdates), new Date().toISOString(), id];
   db.prepare(`UPDATE fragments SET ${fields}, updatedAt = ? WHERE id = ?`).run(...values);
   const fragment = db.prepare('SELECT * FROM fragments WHERE id = ?').get(id);
   fragment.tags = JSON.parse(fragment.tags);
   res.json(fragment);
-});
+}));
 
-app.delete('/api/fragments/:id', (req, res) => {
+app.delete('/api/fragments/:id', wrapRoute((req, res) => {
   db.prepare('DELETE FROM fragments WHERE id = ?').run(req.params.id);
   res.json({ ok: true });
-});
+}));
 
-app.get('/api/articles/:projectId', (req, res) => {
+app.get('/api/articles/:projectId', wrapRoute((req, res) => {
   const article = db.prepare('SELECT * FROM articles WHERE projectId = ?').get(req.params.projectId);
   res.json(article || null);
-});
+}));
 
-app.post('/api/articles', (req, res) => {
+app.post('/api/articles', wrapRoute((req, res) => {
   const { projectId, title, content, summary, generatedAt, fragmentCount } = req.body;
-  
-  // Ensure article_versions table exists
+
   const tableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='article_versions'").get();
   if (!tableExists) {
     db.exec(`
@@ -164,72 +206,60 @@ app.post('/api/articles', (req, res) => {
       CREATE INDEX idx_article_versions_project ON article_versions(projectId, version);
     `);
   }
-  
-  // Save to current article
+
   db.prepare(
     'INSERT OR REPLACE INTO articles (projectId, title, content, summary, generatedAt, fragmentCount) VALUES (?, ?, ?, ?, ?, ?)'
   ).run(projectId, title, content, summary, generatedAt, fragmentCount);
-  
-  // Get next version number
+
   const versionResult = db.prepare('SELECT MAX(version) as maxVersion FROM article_versions WHERE projectId = ?').get(projectId);
   const nextVersion = (versionResult?.maxVersion || 0) + 1;
-  
-  // Save version history
+
   const versionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   const now = new Date().toISOString();
   db.prepare(
     'INSERT INTO article_versions (id, projectId, version, title, content, summary, generatedAt, fragmentCount, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
   ).run(versionId, projectId, nextVersion, title, content, summary, generatedAt, fragmentCount, now);
-  
+
   console.log(`[API] Saved article version ${nextVersion} for project ${projectId}`);
-  
-  // Keep only last 10 versions
+
   db.prepare(
     'DELETE FROM article_versions WHERE projectId = ? AND id NOT IN (SELECT id FROM article_versions WHERE projectId = ? ORDER BY version DESC LIMIT 10)'
   ).run(projectId, projectId);
-  
+
   const article = db.prepare('SELECT * FROM articles WHERE projectId = ?').get(projectId);
   res.json(article);
-});
+}));
 
-app.get('/api/articles/:projectId/versions', (req, res) => {
-  try {
-    // Check if table exists
-    const tableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='article_versions'").get();
-    if (!tableExists) {
-      console.log('[API] article_versions table does not exist, creating...');
-      db.exec(`
-        CREATE TABLE article_versions (
-          id TEXT PRIMARY KEY,
-          projectId TEXT NOT NULL,
-          version INTEGER NOT NULL,
-          title TEXT NOT NULL,
-          content TEXT NOT NULL,
-          summary TEXT DEFAULT '',
-          generatedAt TEXT NOT NULL,
-          fragmentCount INTEGER DEFAULT 0,
-          createdAt TEXT NOT NULL
-        );
-        CREATE INDEX idx_article_versions_project ON article_versions(projectId, version);
-      `);
-    }
-    const rows = db.prepare('SELECT id, version, title, summary, generatedAt, fragmentCount, createdAt FROM article_versions WHERE projectId = ? ORDER BY version DESC').all(req.params.projectId);
-    console.log(`[API] Get versions for project ${req.params.projectId}:`, rows.length, 'versions');
-    res.json(rows);
-  } catch (err) {
-    console.error(`[API] Error getting versions for project ${req.params.projectId}:`, err.message);
-    res.status(500).json({ error: err.message });
+app.get('/api/articles/:projectId/versions', wrapRoute((req, res) => {
+  const tableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='article_versions'").get();
+  if (!tableExists) {
+    db.exec(`
+      CREATE TABLE article_versions (
+        id TEXT PRIMARY KEY,
+        projectId TEXT NOT NULL,
+        version INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        summary TEXT DEFAULT '',
+        generatedAt TEXT NOT NULL,
+        fragmentCount INTEGER DEFAULT 0,
+        createdAt TEXT NOT NULL
+      );
+      CREATE INDEX idx_article_versions_project ON article_versions(projectId, version);
+    `);
   }
-});
+  const rows = db.prepare('SELECT id, version, title, summary, generatedAt, fragmentCount, createdAt FROM article_versions WHERE projectId = ? ORDER BY version DESC').all(req.params.projectId);
+  console.log(`[API] Get versions for project ${req.params.projectId}:`, rows.length, 'versions');
+  res.json(rows);
+}));
 
-app.get('/api/articles/:projectId/versions/:versionId', (req, res) => {
+app.get('/api/articles/:projectId/versions/:versionId', wrapRoute((req, res) => {
   const article = db.prepare('SELECT * FROM article_versions WHERE projectId = ? AND id = ?').get(req.params.projectId, req.params.versionId);
   if (!article) {
-    res.status(404).json({ error: 'Version not found' });
-    return;
+    return jsonError(res, 404, '版本不存在');
   }
   res.json(article);
-});
+}));
 
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'sk-1309f0b2ab6342619d4bdf4fe4c22e28';
 const DEEPSEEK_BASE = 'api.deepseek.com';

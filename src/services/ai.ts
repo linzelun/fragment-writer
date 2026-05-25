@@ -11,6 +11,14 @@ interface AIOptions {
   signal?: AbortSignal;
 }
 
+interface GenerateWithReviewOptions {
+  signal?: AbortSignal;
+  onError?: (msg: string) => void;
+  onThinking?: (text: string) => void;
+  onContent?: (text: string) => void;
+  onReviewScore?: (score: number) => void;
+}
+
 function buildSystemPrompt(project: WritingProject): string {
   const lengthMap = {
     short: '800-1200字左右的短文',
@@ -139,6 +147,79 @@ ${fragmentsText}
 请按照系统提示中的莫迪亚诺写作指南，将这些素材编织成一篇文章。`;
 }
 
+function parseArticleText(fullText: string, defaultTitle: string): ArticleOutput {
+  let title = defaultTitle || '未命名文章';
+  let content = fullText;
+  let summary = '';
+
+  const titleMatch = fullText.match(/^##\s+(.+?)[\n\r]/);
+  if (titleMatch) {
+    title = titleMatch[1].trim();
+    content = fullText.slice(titleMatch[0].length).trim();
+  }
+
+  const separatorIdx = content.lastIndexOf('\n---\n');
+  if (separatorIdx > 0) {
+    summary = content.slice(separatorIdx + 5).trim();
+    content = content.slice(0, separatorIdx).trim();
+  }
+
+  return {
+    title,
+    content,
+    summary,
+    generatedAt: new Date().toISOString(),
+    fragmentCount: 0,
+  };
+}
+
+async function readSSEStream(
+  response: Response,
+  onChunk: (text: string) => void,
+  signal?: AbortSignal
+): Promise<string> {
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error('不支持流式读取');
+
+  const decoder = new TextDecoder();
+  let fullText = '';
+  let buffer = '';
+
+  try {
+    while (true) {
+      if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || !trimmed.startsWith('data: ')) continue;
+
+        const dataStr = trimmed.slice(6);
+        if (dataStr === '[DONE]') continue;
+
+        try {
+          const json = JSON.parse(dataStr);
+          const delta = json.choices?.[0]?.delta?.content;
+          if (delta) {
+            fullText += delta;
+            onChunk(fullText);
+          }
+        } catch {}
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  return fullText;
+}
+
 export async function generateArticle(
   project: WritingProject,
   fragments: Fragment[],
@@ -149,11 +230,12 @@ export async function generateArticle(
     return null;
   }
 
-  // Create abort controller with timeout
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 120000); // 2分钟超时
+  const timeoutId = setTimeout(() => controller.abort(), 180000);
 
   try {
+    options.onThinking?.('正在连接 AI...');
+
     const response = await fetch(PROXY_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -165,7 +247,7 @@ export async function generateArticle(
         ],
         temperature: 0.7,
         max_tokens: 4096,
-        stream: false,
+        stream: true,
       }),
       signal: controller.signal,
     });
@@ -177,46 +259,27 @@ export async function generateArticle(
       );
     }
 
-    const data = await response.json();
-    const fullText: string = data.choices?.[0]?.message?.content || '';
+    options.onThinking?.('AI 正在写作中...');
+
+    const fullText = await readSSEStream(
+      response,
+      (text) => {
+        options.onContent?.(text);
+      },
+      controller.signal
+    );
 
     if (!fullText) {
       options.onError?.('AI 返回内容为空，请重试');
       return null;
     }
 
-    // Parse the response: title (## ...), content, ---, summary
-    let title = project.topic || '未命名文章';
-    let content = fullText;
-    let summary = '';
-
-    // Extract title from first ## heading
-    const titleMatch = fullText.match(/^##\s+(.+?)[\n\r]/);
-    if (titleMatch) {
-      title = titleMatch[1].trim();
-      content = fullText.slice(titleMatch[0].length).trim();
-    }
-
-    // Extract summary after --- separator
-    const separatorIdx = content.lastIndexOf('\n---\n');
-    if (separatorIdx > 0) {
-      summary = content.slice(separatorIdx + 5).trim();
-      content = content.slice(0, separatorIdx).trim();
-    }
-
-    const article: ArticleOutput = {
-      title,
-      content,
-      summary,
-      generatedAt: new Date().toISOString(),
-      fragmentCount: fragments.length,
-    };
-
+    const article = parseArticleText(fullText, project.topic);
+    article.fragmentCount = fragments.length;
     return article;
   } catch (err: unknown) {
-    clearTimeout(timeoutId);
     if (err instanceof DOMException && err.name === 'AbortError') {
-      options.onError?.('请求超时，请重试');
+      options.onError?.('操作已取消');
       return null;
     }
     const message = err instanceof Error ? err.message : '未知错误';
@@ -297,9 +360,7 @@ export async function reviewStyle(articleContent: string): Promise<{
       if (jsonMatch) {
         return JSON.parse(jsonMatch[0]);
       }
-    } catch {
-      // JSON parse failed
-    }
+    } catch {}
     return null;
   } catch {
     return null;
@@ -356,29 +417,9 @@ export async function rewriteWithStyle(
     const fullText: string = data.choices?.[0]?.message?.content || '';
     if (!fullText) return null;
 
-    let title = originalArticle.title;
-    let content = fullText;
-    let summary = '';
-
-    const titleMatch = fullText.match(/^##\s+(.+?)[\n\r]/);
-    if (titleMatch) {
-      title = titleMatch[1].trim();
-      content = fullText.slice(titleMatch[0].length).trim();
-    }
-
-    const separatorIdx = content.lastIndexOf('\n---\n');
-    if (separatorIdx > 0) {
-      summary = content.slice(separatorIdx + 5).trim();
-      content = content.slice(0, separatorIdx).trim();
-    }
-
-    return {
-      title,
-      content,
-      summary,
-      generatedAt: new Date().toISOString(),
-      fragmentCount: originalArticle.fragmentCount,
-    };
+    const article = parseArticleText(fullText, originalArticle.title);
+    article.fragmentCount = originalArticle.fragmentCount;
+    return article;
   } catch {
     return null;
   } finally {
@@ -389,39 +430,44 @@ export async function rewriteWithStyle(
 export async function generateWithReview(
   project: WritingProject,
   fragments: Fragment[],
-  options: AIOptions & { onReviewScore?: (score: number) => void } = {}
+  options: GenerateWithReviewOptions = {}
 ): Promise<{ article: ArticleOutput; reviewScore: number } | null> {
-  options.onThinking?.('正在生成初稿...');
-  
-  const article = await generateArticle(project, fragments, options);
+  options.onThinking?.('AI 正在写作中...');
+
+  const article = await generateArticle(project, fragments, {
+    onContent: options.onContent,
+    onError: options.onError,
+    signal: options.signal,
+    onThinking: (text) => {
+      if (text === 'AI 正在写作中...') {
+        options.onThinking?.('AI 正在写作中...');
+      } else {
+        options.onThinking?.(text);
+      }
+    },
+  });
+
   if (!article) return null;
 
-  options.onThinking?.('正在进行风格审查...');
+  options.onThinking?.('正在审查风格...');
 
   const review = await reviewStyle(article.content);
-  
-  if (review && options.onReviewScore) {
-    options.onReviewScore(review.score);
-  }
+  const reviewScore = review?.score ?? 70;
+  options.onReviewScore?.(reviewScore);
 
-  if (review && review.score < 80) {
-    options.onThinking?.(`风格得分 ${review.score}/100，正在优化...`);
-    
-    const improved = await rewriteWithStyle(
-      project,
-      article,
-      review.improvements,
-      options.signal
-    );
+  if (reviewScore < 80 && review?.improvements?.length) {
+    options.onThinking?.('风格评分不足，正在优化...');
 
-    if (improved) {
-      const improvedReview = await reviewStyle(improved.content);
-      if (improvedReview && options.onReviewScore) {
-        options.onReviewScore(improvedReview.score);
-      }
-      return { article: improved, reviewScore: improvedReview?.score || review.score };
+    const rewritten = await rewriteWithStyle(project, article, review.improvements, options.signal);
+
+    if (rewritten) {
+      const reReview = await reviewStyle(rewritten.content);
+      const reScore = reReview?.score ?? reviewScore;
+      options.onReviewScore?.(reScore);
+      rewritten.fragmentCount = fragments.length;
+      return { article: rewritten, reviewScore: reScore };
     }
   }
 
-  return { article, reviewScore: review?.score || 0 };
+  return { article, reviewScore };
 }

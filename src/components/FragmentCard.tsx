@@ -1,7 +1,7 @@
 import { useState, memo } from 'react';
 import { useWriting } from '../stores/writing-store';
 import { useToast } from '../contexts/ToastContext';
-import { Trash2, Edit3, Check, X, Tag } from 'lucide-react';
+import { Trash2, Edit3, Check, X, Tag, AlertTriangle } from 'lucide-react';
 import type { Fragment } from '../types';
 
 interface FragmentCardProps {
@@ -15,6 +15,7 @@ const FragmentCard = memo(function FragmentCard({ fragment, index }: FragmentCar
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState(fragment.content);
   const [editNote, setEditNote] = useState(fragment.note || '');
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   const handleSave = () => {
     if (!editContent.trim()) return;
@@ -34,6 +35,7 @@ const FragmentCard = memo(function FragmentCard({ fragment, index }: FragmentCar
   const handleDelete = () => {
     FragmentActions.deleteFragment(fragment.id);
     toast.success('素材已删除');
+    setDeleteConfirm(false);
   };
 
   const formattedDate = new Date(fragment.createdAt).toLocaleDateString('zh-CN', {
@@ -78,7 +80,6 @@ const FragmentCard = memo(function FragmentCard({ fragment, index }: FragmentCar
             {fragment.content}
           </p>
 
-          {/* Tags */}
           {fragment.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-3">
               {fragment.tags.map((tag, i) => (
@@ -93,7 +94,6 @@ const FragmentCard = memo(function FragmentCard({ fragment, index }: FragmentCar
             </div>
           )}
 
-          {/* Footer */}
           <div className="flex items-center justify-between mt-3 pt-2 border-t border-ink-100 dark:border-ink-800">
             <div className="flex items-center gap-3 text-xs text-ink-400 dark:text-ink-500">
               <span>{formattedDate}</span>
@@ -109,7 +109,7 @@ const FragmentCard = memo(function FragmentCard({ fragment, index }: FragmentCar
                 <Edit3 size={14} />
               </button>
               <button
-                onClick={handleDelete}
+                onClick={() => setDeleteConfirm(true)}
                 className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-ink-300 dark:text-ink-600 hover:text-red-500 dark:hover:text-red-400 transition-colors"
               >
                 <Trash2 size={14} />
@@ -117,6 +117,39 @@ const FragmentCard = memo(function FragmentCard({ fragment, index }: FragmentCar
             </div>
           </div>
         </>
+      )}
+
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setDeleteConfirm(false)}>
+          <div className="bg-white dark:bg-ink-900 rounded-2xl p-6 max-w-sm w-full shadow-xl animate-fade-up" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                <AlertTriangle size={20} className="text-red-500 dark:text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-ink-900 dark:text-ink-100">确认删除</h3>
+                <p className="text-xs text-ink-500 dark:text-ink-400 mt-0.5">删除后不可恢复</p>
+              </div>
+            </div>
+            <p className="text-sm text-ink-600 dark:text-ink-300 mb-6 line-clamp-2 border-l-2 border-ink-200 dark:border-ink-700 pl-3">
+              {fragment.content.slice(0, 80)}{fragment.content.length > 80 ? '...' : ''}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirm(false)}
+                className="flex-1 h-10 rounded-xl border border-ink-200 dark:border-ink-700 text-sm font-medium text-ink-600 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleDelete}
+                className="flex-1 h-10 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors"
+              >
+                确认删除
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
