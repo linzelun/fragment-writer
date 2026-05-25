@@ -87,7 +87,11 @@ db.exec(`
     content TEXT NOT NULL,
     summary TEXT DEFAULT '',
     generatedAt TEXT NOT NULL,
-    fragmentCount INTEGER DEFAULT 0
+    fragmentCount INTEGER DEFAULT 0,
+    styleScore INTEGER DEFAULT NULL,
+    styleBreakdown TEXT DEFAULT '{}',
+    styleHighlights TEXT DEFAULT '[]',
+    styleImprovements TEXT DEFAULT '[]'
   );
 `);
 
@@ -182,12 +186,18 @@ app.delete('/api/fragments/:id', wrapRoute((req, res) => {
 }));
 
 app.get('/api/articles/:projectId', wrapRoute((req, res) => {
-  const article = db.prepare('SELECT * FROM articles WHERE projectId = ?').get(req.params.projectId);
-  res.json(article || null);
+  const articleRow = db.prepare('SELECT * FROM articles WHERE projectId = ?').get(req.params.projectId);
+  if (articleRow) {
+    articleRow.styleScore = articleRow.styleScore !== null ? articleRow.styleScore : undefined;
+    articleRow.styleBreakdown = articleRow.styleBreakdown ? JSON.parse(articleRow.styleBreakdown) : undefined;
+    articleRow.styleHighlights = articleRow.styleHighlights ? JSON.parse(articleRow.styleHighlights) : undefined;
+    articleRow.styleImprovements = articleRow.styleImprovements ? JSON.parse(articleRow.styleImprovements) : undefined;
+  }
+  res.json(articleRow || null);
 }));
 
 app.post('/api/articles', wrapRoute((req, res) => {
-  const { projectId, title, content, summary, generatedAt, fragmentCount } = req.body;
+  const { projectId, title, content, summary, generatedAt, fragmentCount, styleScore, styleBreakdown, styleHighlights, styleImprovements } = req.body;
 
   const tableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='article_versions'").get();
   if (!tableExists) {
@@ -201,6 +211,10 @@ app.post('/api/articles', wrapRoute((req, res) => {
         summary TEXT DEFAULT '',
         generatedAt TEXT NOT NULL,
         fragmentCount INTEGER DEFAULT 0,
+        styleScore INTEGER DEFAULT NULL,
+        styleBreakdown TEXT DEFAULT '{}',
+        styleHighlights TEXT DEFAULT '[]',
+        styleImprovements TEXT DEFAULT '[]',
         createdAt TEXT NOT NULL
       );
       CREATE INDEX idx_article_versions_project ON article_versions(projectId, version);
@@ -208,8 +222,12 @@ app.post('/api/articles', wrapRoute((req, res) => {
   }
 
   db.prepare(
-    'INSERT OR REPLACE INTO articles (projectId, title, content, summary, generatedAt, fragmentCount) VALUES (?, ?, ?, ?, ?, ?)'
-  ).run(projectId, title, content, summary, generatedAt, fragmentCount);
+    'INSERT OR REPLACE INTO articles (projectId, title, content, summary, generatedAt, fragmentCount, styleScore, styleBreakdown, styleHighlights, styleImprovements) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(projectId, title, content, summary, generatedAt, fragmentCount, 
+        styleScore || null, 
+        styleBreakdown ? JSON.stringify(styleBreakdown) : '{}', 
+        styleHighlights ? JSON.stringify(styleHighlights) : '[]', 
+        styleImprovements ? JSON.stringify(styleImprovements) : '[]');
 
   const versionResult = db.prepare('SELECT MAX(version) as maxVersion FROM article_versions WHERE projectId = ?').get(projectId);
   const nextVersion = (versionResult?.maxVersion || 0) + 1;
@@ -217,8 +235,13 @@ app.post('/api/articles', wrapRoute((req, res) => {
   const versionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   const now = new Date().toISOString();
   db.prepare(
-    'INSERT INTO article_versions (id, projectId, version, title, content, summary, generatedAt, fragmentCount, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).run(versionId, projectId, nextVersion, title, content, summary, generatedAt, fragmentCount, now);
+    'INSERT INTO article_versions (id, projectId, version, title, content, summary, generatedAt, fragmentCount, styleScore, styleBreakdown, styleHighlights, styleImprovements, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(versionId, projectId, nextVersion, title, content, summary, generatedAt, fragmentCount,
+        styleScore || null,
+        styleBreakdown ? JSON.stringify(styleBreakdown) : '{}',
+        styleHighlights ? JSON.stringify(styleHighlights) : '[]',
+        styleImprovements ? JSON.stringify(styleImprovements) : '[]',
+        now);
 
   console.log(`[API] Saved article version ${nextVersion} for project ${projectId}`);
 
@@ -226,8 +249,14 @@ app.post('/api/articles', wrapRoute((req, res) => {
     'DELETE FROM article_versions WHERE projectId = ? AND id NOT IN (SELECT id FROM article_versions WHERE projectId = ? ORDER BY version DESC LIMIT 10)'
   ).run(projectId, projectId);
 
-  const article = db.prepare('SELECT * FROM articles WHERE projectId = ?').get(projectId);
-  res.json(article);
+  const articleRow = db.prepare('SELECT * FROM articles WHERE projectId = ?').get(projectId);
+  if (articleRow) {
+    articleRow.styleScore = articleRow.styleScore !== null ? articleRow.styleScore : undefined;
+    articleRow.styleBreakdown = articleRow.styleBreakdown ? JSON.parse(articleRow.styleBreakdown) : undefined;
+    articleRow.styleHighlights = articleRow.styleHighlights ? JSON.parse(articleRow.styleHighlights) : undefined;
+    articleRow.styleImprovements = articleRow.styleImprovements ? JSON.parse(articleRow.styleImprovements) : undefined;
+  }
+  res.json(articleRow);
 }));
 
 app.get('/api/articles/:projectId/versions', wrapRoute((req, res) => {
@@ -254,11 +283,17 @@ app.get('/api/articles/:projectId/versions', wrapRoute((req, res) => {
 }));
 
 app.get('/api/articles/:projectId/versions/:versionId', wrapRoute((req, res) => {
-  const article = db.prepare('SELECT * FROM article_versions WHERE projectId = ? AND id = ?').get(req.params.projectId, req.params.versionId);
-  if (!article) {
+  const articleRow = db.prepare('SELECT * FROM article_versions WHERE projectId = ? AND id = ?').get(req.params.projectId, req.params.versionId);
+  if (!articleRow) {
     return jsonError(res, 404, '版本不存在');
   }
-  res.json(article);
+  if (articleRow) {
+    articleRow.styleScore = articleRow.styleScore !== null ? articleRow.styleScore : undefined;
+    articleRow.styleBreakdown = articleRow.styleBreakdown ? JSON.parse(articleRow.styleBreakdown) : undefined;
+    articleRow.styleHighlights = articleRow.styleHighlights ? JSON.parse(articleRow.styleHighlights) : undefined;
+    articleRow.styleImprovements = articleRow.styleImprovements ? JSON.parse(articleRow.styleImprovements) : undefined;
+  }
+  res.json(articleRow);
 }));
 
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'sk-1309f0b2ab6342619d4bdf4fe4c22e28';

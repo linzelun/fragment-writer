@@ -57,7 +57,10 @@ export default function ArticlePreview({ onClose }: ArticlePreviewProps) {
         summary: data.summary,
         generatedAt: data.generatedAt,
         fragmentCount: data.fragmentCount,
-        styleScore: undefined,
+        styleScore: data.styleScore,
+        styleBreakdown: data.styleBreakdown,
+        styleHighlights: data.styleHighlights,
+        styleImprovements: data.styleImprovements,
       });
       setViewingVersion(v);
     } catch {} finally {
@@ -255,12 +258,44 @@ export default function ArticlePreview({ onClose }: ArticlePreviewProps) {
               </div>
 
               <div className="mt-3 pt-3 border-t border-inherit">
-                <p className="text-xs text-ink-600 dark:text-ink-300 leading-relaxed">
-                  {article.styleScore >= 90 && '✨ 极具莫迪亚诺神韵，文字如浸湿的老照片般朦胧动人。'}
-                  {article.styleScore >= 80 && article.styleScore < 90 && '📖 很好地捕捉了莫迪亚诺的克制与留白，记忆的不确定性处理得当。'}
-                  {article.styleScore >= 60 && article.styleScore < 80 && '📝 具备基本的风格特征，建议进一步强化物质细节和不确定性表达。'}
-                  {article.styleScore < 60 && '⚠️ 风格特征较弱，建议重新生成或手动调整以更贴近莫迪亚诺风格。'}
-                </p>
+                {/* AI 生成的亮点与改进建议 */}
+                {article.styleHighlights && article.styleHighlights.length > 0 && (
+                  <div className="mb-3">
+                    <h4 className="text-xs font-semibold text-green-700 dark:text-green-400 mb-1.5">亮点</h4>
+                    <ul className="space-y-0.5">
+                      {article.styleHighlights.map((h, i) => (
+                        <li key={i} className="text-xs text-ink-600 dark:text-ink-300 pl-3 relative before:content-['·'] before:absolute before:left-0 before:text-green-500 before:font-bold">
+                          {h}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {article.styleImprovements && article.styleImprovements.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1.5">改进建议</h4>
+                    <ul className="space-y-0.5">
+                      {article.styleImprovements.map((imp, i) => (
+                        <li key={i} className="text-xs text-ink-600 dark:text-ink-300 pl-3 relative before:content-['·'] before:absolute before:left-0 before:text-amber-500 before:font-bold">
+                          {imp}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {/* 评分明细 */}
+                {article.styleBreakdown && Object.keys(article.styleBreakdown).length > 0 && (
+                  <div className="mt-3 grid grid-cols-2 gap-1.5">
+                    {Object.entries(article.styleBreakdown).map(([key, val]) => (
+                      <div key={key} className="flex items-center justify-between bg-white/50 dark:bg-ink-800/50 rounded-lg px-2.5 py-1.5">
+                        <span className="text-xs text-ink-500 dark:text-ink-400 capitalize">{key.replace(/_/g, ' ')}</span>
+                        <span className={`text-xs font-bold ml-2 ${
+                          val.score >= 8 ? 'text-green-600 dark:text-green-400' : val.score >= 6 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'
+                        }`}>{val.score}/10</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}

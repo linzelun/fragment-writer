@@ -431,7 +431,7 @@ export async function generateWithReview(
   project: WritingProject,
   fragments: Fragment[],
   options: GenerateWithReviewOptions = {}
-): Promise<{ article: ArticleOutput; reviewScore: number } | null> {
+): Promise<{ article: ArticleOutput; reviewScore: number; reviewData?: any } | null> {
   options.onThinking?.('AI 正在写作中...');
 
   const article = await generateArticle(project, fragments, {
@@ -455,19 +455,54 @@ export async function generateWithReview(
   const reviewScore = review?.score ?? 70;
   options.onReviewScore?.(reviewScore);
 
-  if (reviewScore < 80 && review?.improvements?.length) {
-    options.onThinking?.('风格评分不足，正在优化...');
-
-    const rewritten = await rewriteWithStyle(project, article, review.improvements, options.signal);
-
-    if (rewritten) {
-      const reReview = await reviewStyle(rewritten.content);
-      const reScore = reReview?.score ?? reviewScore;
-      options.onReviewScore?.(reScore);
-      rewritten.fragmentCount = fragments.length;
-      return { article: rewritten, reviewScore: reScore };
-    }
+  // 将首次评分数据保存到文章对象中
+  article.styleScore = reviewScore;
+  if (review) {
+    article.styleBreakdown = review.breakdown;
+    article.styleHighlights = review.highlights;
+    article.styleImprovements = review.improvements;
   }
 
-  return { article, reviewScore };
+  if (reviewScore < 80 && review?.improvements?.length) {
+    options.onThinking?.('风格评分不足，正在优化中...');
+
+    let currentArticle = article;
+    let currentScore = reviewScore;
+    let currentImprovements = review.improvements;
+    let currentReviewData = review;
+
+    for (let attempt = 0; attempt < 3 && currentScore < 80; attempt++) {
+      options.onThinking?.(`第 ${attempt + 1} 次优化中...`);
+
+      const rewritten = await rewriteWithStyle(project, currentArticle, currentImprovements, options.signal);
+
+      if (!rewritten) break;
+
+      const reReview = await reviewStyle(rewritten.content);
+      const reScore = reReview?.score ?? currentScore;
+      options.onReviewScore?.(reScore);
+
+      if (reScore >= currentScore) {
+        currentArticle = rewritten;
+        currentScore = reScore;
+        currentImprovements = reReview?.improvements || [];
+        currentReviewData = reReview;
+      }
+
+      if (reScore >= 80) break;
+    }
+
+    // 将最终优化后的评分数据保存到文章对象中
+    currentArticle.styleScore = currentScore;
+    if (currentReviewData) {
+      currentArticle.styleBreakdown = currentReviewData.breakdown;
+      currentArticle.styleHighlights = currentReviewData.highlights;
+      currentArticle.styleImprovements = currentReviewData.improvements;
+    }
+    
+    currentArticle.fragmentCount = fragments.length;
+    return { article: currentArticle, reviewScore: currentScore, reviewData: currentReviewData };
+  }
+
+  return { article, reviewScore, reviewData: review };
 }
