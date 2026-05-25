@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Download, Copy, Check, ChevronDown } from 'lucide-react';
-import html2pdf from 'html2pdf.js';
 import type { ArticleOutput } from '../types';
 
 interface ExportPanelProps {
@@ -12,7 +11,6 @@ const EXPORT_FORMATS = [
   { type: 'markdown' as const, label: 'Markdown', extension: '.md', mimeType: 'text/markdown' },
   { type: 'plaintext' as const, label: '纯文本', extension: '.txt', mimeType: 'text/plain' },
   { type: 'html' as const, label: 'HTML', extension: '.html', mimeType: 'text/html' },
-  { type: 'pdf' as const, label: 'PDF', extension: '.pdf', mimeType: 'application/pdf' },
 ];
 
 function formatArticle(article: ArticleOutput, format: string): string {
@@ -25,67 +23,6 @@ function formatArticle(article: ArticleOutput, format: string): string {
     default:
       return `${article.title}\n\n${article.content}\n\n---\n摘要：${article.summary}`;
   }
-}
-
-function buildPDFHTML(article: ArticleOutput, projectTitle: string): string {
-  const paragraphs = article.content
-    .split('\n')
-    .filter(Boolean)
-    .map(p => `<p>${p}</p>`)
-    .join('\n');
-
-  return `<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<style>
-  @page { margin: 20mm 18mm; }
-  body {
-    font-family: "PingFang SC", "Hiragino Sans GB", "Noto Serif CJK SC", "Source Han Serif SC", serif;
-    font-size: 12pt;
-    line-height: 2;
-    color: #1a1a1a;
-    max-width: 100%;
-  }
-  .title {
-    font-size: 18pt;
-    font-weight: bold;
-    text-align: center;
-    margin-bottom: 24pt;
-    letter-spacing: 2pt;
-  }
-  p {
-    text-indent: 2em;
-    margin: 6pt 0;
-  }
-  hr {
-    border: none;
-    border-top: 1px solid #ccc;
-    margin: 20pt 0;
-  }
-  .summary {
-    font-size: 10pt;
-    color: #666;
-    font-style: italic;
-    text-indent: 0;
-  }
-  .footer {
-    margin-top: 16pt;
-    font-size: 9pt;
-    color: #999;
-    text-align: center;
-    text-indent: 0;
-  }
-</style>
-</head>
-<body>
-<h1 class="title">${article.title}</h1>
-${paragraphs}
-<hr>
-<p class="summary">摘要：${article.summary}</p>
-<p class="footer">由碎片写作 AI 整合生成 &middot; ${article.fragmentCount} 条素材 &middot; ${new Date(article.generatedAt).toLocaleDateString('zh-CN')}</p>
-</body>
-</html>`;
 }
 
 export default function ExportPanel({ article, projectTitle }: ExportPanelProps) {
@@ -112,46 +49,7 @@ export default function ExportPanel({ article, projectTitle }: ExportPanelProps)
     }
   };
 
-  const handlePDF = async () => {
-    const container = document.createElement('div');
-    container.innerHTML = buildPDFHTML(article, projectTitle);
-    Object.assign(container.style, {
-      position: 'fixed',
-      top: '0',
-      left: '0',
-      width: '100vw',
-      height: '100vh',
-      zIndex: '99999',
-      background: 'white',
-      overflow: 'auto',
-      padding: '20mm 18mm',
-      boxSizing: 'border-box',
-    });
-    document.body.appendChild(container);
-
-    await new Promise(r => setTimeout(r, 200));
-
-    const opt = {
-      margin: [0, 0, 0, 0] as [number, number, number, number],
-      filename: `${safeFileName}.pdf`,
-      image: { type: 'jpeg' as const, quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, windowWidth: container.scrollWidth, windowHeight: container.scrollHeight },
-      jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const },
-    };
-
-    try {
-      await html2pdf().set(opt).from(container).save();
-    } finally {
-      document.body.removeChild(container);
-    }
-    setOpen(false);
-  };
-
   const handleDownload = (format: typeof EXPORT_FORMATS[0]) => {
-    if (format.type === 'pdf') {
-      handlePDF();
-      return;
-    }
     const content = formatArticle(article, format.type);
     const blob = new Blob([content], { type: `${format.mimeType};charset=utf-8` });
     const url = URL.createObjectURL(blob);
