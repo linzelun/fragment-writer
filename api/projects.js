@@ -1,4 +1,4 @@
-import { getProjects, saveProjects, getFragments, json, error } from '../_kv.js';
+import { getProjects, saveProjects, getFragments, json, error } from './_kv.js';
 
 export default async function handler(req, res) {
   try {

@@ -1,4 +1,4 @@
-import { getVersions, saveVersions, getArticle, saveArticle, json, error } from '../_kv.js';
+import { getVersions, saveVersions, getArticle, saveArticle, json, error } from './_kv.js';
 
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
