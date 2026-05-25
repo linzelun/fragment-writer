@@ -115,16 +115,27 @@ export default function ExportPanel({ article, projectTitle }: ExportPanelProps)
   const handlePDF = async () => {
     const container = document.createElement('div');
     container.innerHTML = buildPDFHTML(article, projectTitle);
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
-    container.style.top = '0';
+    Object.assign(container.style, {
+      position: 'fixed',
+      top: '0',
+      left: '0',
+      width: '100vw',
+      height: '100vh',
+      zIndex: '99999',
+      background: 'white',
+      overflow: 'auto',
+      padding: '20mm 18mm',
+      boxSizing: 'border-box',
+    });
     document.body.appendChild(container);
+
+    await new Promise(r => setTimeout(r, 200));
 
     const opt = {
       margin: [0, 0, 0, 0] as [number, number, number, number],
       filename: `${safeFileName}.pdf`,
       image: { type: 'jpeg' as const, quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
+      html2canvas: { scale: 2, useCORS: true, windowWidth: container.scrollWidth, windowHeight: container.scrollHeight },
       jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const },
     };
 
