@@ -25,7 +25,8 @@ type Action =
   | { type: 'SET_FRAGMENTS'; fragments: Fragment[] }
   | { type: 'SET_ACTIVE_PROJECT'; id: string | null }
   | { type: 'SAVE_ARTICLE'; projectId: string; article: ArticleOutput }
-  | { type: 'TOGGLE_SIDEBAR' };
+  | { type: 'TOGGLE_SIDEBAR' }
+  | { type: 'SET_LOADING'; loading: boolean };
 
 function reducer(state: WritingState, action: Action): WritingState {
   switch (action.type) {
@@ -42,6 +43,8 @@ function reducer(state: WritingState, action: Action): WritingState {
       };
     case 'TOGGLE_SIDEBAR':
       return { ...state, sidebarOpen: !state.sidebarOpen };
+    case 'SET_LOADING':
+      return { ...state, loading: action.loading };
     default:
       return state;
   }
@@ -90,12 +93,14 @@ export function WritingProvider({ children }: { children: ReactNode }) {
     api.projectsApi.list().then(projects => {
       dispatch({ type: 'SET_PROJECTS', projects });
       dispatch({ type: 'SET_FRAGMENTS', fragments: [] });
+      dispatch({ type: 'SET_LOADING', loading: false });
       // Auto-activate first project
       if (projects.length > 0) {
         dispatch({ type: 'SET_ACTIVE_PROJECT', id: projects[0].id });
       }
     }).catch(err => {
       console.error('Failed to load projects:', err);
+      dispatch({ type: 'SET_LOADING', loading: false });
     });
   }, []);
 
