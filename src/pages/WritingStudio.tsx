@@ -8,7 +8,7 @@ import AIIntegration from '../components/AIIntegration';
 import ArticlePreview from '../components/ArticlePreview';
 import EmptyState from '../components/EmptyState';
 import SearchBar from '../components/SearchBar';
-import { Menu, Sparkles, BookOpen, ChevronRight, Moon, Sun, Search } from 'lucide-react';
+import { Menu, Sparkles, BookOpen, ChevronRight, Moon, Sun, Search, ChevronDown, Layers } from 'lucide-react';
 
 export default function WritingStudio() {
   const { state, activeProject, sortedFragments } = useWriting();
@@ -111,8 +111,8 @@ export default function WritingStudio() {
 
         {sidebarOpen && (
           <div className="fixed inset-0 z-50 flex">
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-            <div className="relative w-80 max-w-[85vw] bg-white h-full shadow-2xl animate-slide-up">
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick={() => setSidebarOpen(false)} />
+            <div className="relative w-80 max-w-[85vw] bg-white h-full shadow-2xl animate-slide-in-left">
               <ProjectList onClose={() => setSidebarOpen(false)} />
             </div>
           </div>
@@ -125,16 +125,26 @@ export default function WritingStudio() {
     <div className="min-h-screen bg-ink-50 dark:bg-ink-950">
       <header className="sticky top-0 z-20 bg-ink-50/90 dark:bg-ink-950/90 backdrop-blur-md border-b border-ink-200/60 dark:border-ink-800/60">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
             <button
               onClick={() => setSidebarOpen(true)}
               className="p-1.5 -ml-1 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors shrink-0"
+              title="打开项目列表"
             >
               <Menu size={20} className="text-ink-500 dark:text-ink-400" />
             </button>
             <div className="min-w-0">
-              <h1 className="font-extrabold text-sm text-ink-900 dark:text-ink-100 truncate">{activeProject.title}</h1>
-              <p className="text-xs text-ink-400 dark:text-ink-500 truncate">{activeProject.topic}</p>
+              <div className="flex items-center gap-1.5">
+                <h1 className="font-extrabold text-sm text-ink-900 dark:text-ink-100 truncate">{activeProject.title}</h1>
+                <ChevronDown size={14} className="text-ink-400 dark:text-ink-500 shrink-0" />
+              </div>
+              <div className="flex items-center gap-2 mt-0.5">
+                <p className="text-xs text-ink-400 dark:text-ink-500 truncate">{activeProject.topic}</p>
+                <span className="text-xs text-ink-400 dark:text-ink-500">•</span>
+                <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                  {sortedFragments.length} 条素材
+                </span>
+              </div>
             </div>
           </div>
 
@@ -146,8 +156,9 @@ export default function WritingStudio() {
             >
               {isDark ? <Sun size={15} className="text-ink-400" /> : <Moon size={15} className="text-ink-500" />}
             </button>
-            <div className="text-xs text-ink-400 dark:text-ink-500 font-medium bg-ink-200/50 dark:bg-ink-800/50 px-2 py-0.5 rounded-md shrink-0">
-              {sortedFragments.length} 条素材
+            <div className="text-xs text-ink-400 dark:text-ink-500 font-medium bg-ink-200/50 dark:bg-ink-800/50 px-2 py-0.5 rounded-md shrink-0 flex items-center gap-1">
+              <Layers size={12} />
+              {state.projects.length} 个项目
             </div>
           </div>
         </div>
@@ -193,8 +204,8 @@ export default function WritingStudio() {
 
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 flex">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-          <div className="relative w-80 max-w-[85vw] bg-white dark:bg-ink-900 h-full shadow-2xl animate-slide-up">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick={() => setSidebarOpen(false)} />
+          <div className="relative w-80 max-w-[85vw] bg-white dark:bg-ink-900 h-full shadow-2xl animate-slide-in-left">
             <ProjectList onClose={() => setSidebarOpen(false)} />
           </div>
         </div>

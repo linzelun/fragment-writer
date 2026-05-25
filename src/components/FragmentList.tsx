@@ -24,15 +24,27 @@ export default function FragmentList({ fragments }: FragmentListProps) {
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-ink-400 dark:text-ink-500 uppercase tracking-wider">
-          全部素材 · {fragments.length}
-        </span>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between border-b border-ink-200 dark:border-ink-800 pb-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-ink-900 dark:text-ink-100 uppercase tracking-wider">
+            全部素材
+          </span>
+          <span className="text-xs font-bold bg-ink-900 dark:bg-ink-100 text-white dark:text-ink-900 px-2 py-0.5 rounded-full">
+            {fragments.length}
+          </span>
+        </div>
+        {fragments.length > 0 && (
+          <span className="text-xs text-ink-400 dark:text-ink-500">
+            按时间倒序排列
+          </span>
+        )}
       </div>
-      {fragments.map((fragment, i) => (
-        <FragmentCard key={fragment.id} fragment={fragment} index={i} />
-      ))}
+      <div className="space-y-3">
+        {fragments.map((fragment, i) => (
+          <FragmentCard key={fragment.id} fragment={fragment} index={i} />
+        ))}
+      </div>
     </div>
   );
 }

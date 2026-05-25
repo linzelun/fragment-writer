@@ -56,8 +56,8 @@ export default function ProjectList({ onClose }: ProjectListProps) {
                 key={project.id}
                 className={`group relative rounded-xl px-4 py-3.5 cursor-pointer transition-all duration-200 ${
                   state.activeProjectId === project.id
-                    ? 'bg-ink-900 dark:bg-ink-100 text-white dark:text-ink-900 shadow-lg'
-                    : 'hover:bg-ink-100 dark:hover:bg-ink-800 text-ink-800 dark:text-ink-200'
+                    ? 'bg-ink-900 dark:bg-ink-100 text-white dark:text-ink-900 shadow-lg ring-2 ring-amber-400/20'
+                    : 'hover:bg-ink-100 dark:hover:bg-ink-800 text-ink-800 dark:text-ink-200 hover:shadow-md'
                 }`}
                 onClick={() => {
                   ProjectActions.setActiveProject(project.id);
@@ -66,29 +66,75 @@ export default function ProjectList({ onClose }: ProjectListProps) {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <h3 className={`font-bold truncate text-sm ${
-                      state.activeProjectId === project.id ? 'text-white dark:text-ink-900' : 'text-ink-900 dark:text-ink-100'
-                    }`}>
-                      {project.title || '未命名项目'}
-                    </h3>
-                    <p className={`text-xs mt-0.5 truncate ${
-                      state.activeProjectId === project.id ? 'text-white/60 dark:text-ink-700' : 'text-ink-500 dark:text-ink-400'
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className={`font-bold truncate text-sm ${
+                        state.activeProjectId === project.id ? 'text-white dark:text-ink-900' : 'text-ink-900 dark:text-ink-100'
+                      }`}>
+                        {project.title || '未命名项目'}
+                      </h3>
+                      {state.activeProjectId === project.id && (
+                        <span className="text-[10px] font-bold bg-amber-400 text-ink-900 px-1.5 py-0.5 rounded-full shrink-0">
+                          当前
+                        </span>
+                      )}
+                    </div>
+                    <p className={`text-xs truncate ${
+                      state.activeProjectId === project.id ? 'text-white/70 dark:text-ink-700' : 'text-ink-500 dark:text-ink-400'
                     }`}>
                       {project.topic || '未设置主题'}
                     </p>
-                    <div className={`flex items-center gap-3 mt-1 text-xs ${
-                      state.activeProjectId === project.id ? 'text-white/40 dark:text-ink-600' : 'text-ink-400 dark:text-ink-500'
+                    
+                    {/* Progress bar for fragment count */}
+                    <div className="mt-2 mb-1.5">
+                      <div className="flex items-center justify-between text-xs mb-0.5">
+                        <span className={`font-medium ${
+                          state.activeProjectId === project.id ? 'text-white/80 dark:text-ink-600' : 'text-ink-500 dark:text-ink-500'
+                        }`}>
+                          素材进度
+                        </span>
+                        <span className={`font-bold ${
+                          state.activeProjectId === project.id ? 'text-white dark:text-ink-900' : 'text-ink-700 dark:text-ink-300'
+                        }`}>
+                          {(project.fragmentCount ?? 0)} 条
+                        </span>
+                      </div>
+                      <div className={`h-1 rounded-full overflow-hidden ${
+                        state.activeProjectId === project.id ? 'bg-white/20 dark:bg-ink-900/20' : 'bg-ink-200 dark:bg-ink-700'
+                      }`}>
+                        <div 
+                          className={`h-full transition-all duration-500 ${
+                            state.activeProjectId === project.id 
+                              ? 'bg-amber-300 dark:bg-amber-500' 
+                              : 'bg-ink-400 dark:bg-ink-500'
+                          }`}
+                          style={{ width: `${Math.min((project.fragmentCount ?? 0) * 10, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className={`flex items-center justify-between text-xs ${
+                      state.activeProjectId === project.id ? 'text-white/50 dark:text-ink-600' : 'text-ink-400 dark:text-ink-500'
                     }`}>
                       <span className="flex items-center gap-1">
-                        <FileText size={10} />
-                        {(project.fragmentCount ?? 0)} 条素材
+                        <Clock size={10} />
+                        {project.lastFragmentAt 
+                          ? (() => {
+                              const now = new Date();
+                              const last = new Date(project.lastFragmentAt);
+                              const diffHours = Math.floor((now.getTime() - last.getTime()) / (1000 * 60 * 60));
+                              
+                              if (diffHours < 1) return '刚刚';
+                              if (diffHours < 24) return `${diffHours}小时前`;
+                              if (diffHours < 168) return `${Math.floor(diffHours / 24)}天前`;
+                              return new Date(project.lastFragmentAt).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+                            })()
+                          : '从未更新'
+                        }
                       </span>
-                      {project.lastFragmentAt && (
-                        <span className="flex items-center gap-1">
-                          <Clock size={10} />
-                          {new Date(project.lastFragmentAt).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
-                        </span>
-                      )}
+                      <span className="flex items-center gap-1">
+                        <FileText size={10} />
+                        {project.fragmentCount === 0 ? '待开始' : '写作中'}
+                      </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
@@ -99,6 +145,7 @@ export default function ProjectList({ onClose }: ProjectListProps) {
                           ? 'hover:bg-white/15 dark:hover:bg-ink-900/20 text-white/80 dark:text-ink-700'
                           : 'hover:bg-ink-200 dark:hover:bg-ink-700 text-ink-400 dark:text-ink-500'
                       }`}
+                      title="编辑项目"
                     >
                       <Edit3 size={14} />
                     </button>
@@ -109,6 +156,7 @@ export default function ProjectList({ onClose }: ProjectListProps) {
                           ? 'hover:bg-white/15 dark:hover:bg-ink-900/20 text-white/80 dark:text-ink-700'
                           : 'hover:bg-ink-200 dark:hover:bg-ink-700 text-ink-400 dark:text-ink-500'
                       }`}
+                      title="删除项目"
                     >
                       <Trash2 size={14} />
                     </button>

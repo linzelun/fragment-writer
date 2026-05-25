@@ -98,24 +98,37 @@ export default function AIIntegration({ onArticleGenerated, compact }: AIIntegra
         <div className="flex items-center gap-3">
           {/* Loading */}
           {loading ? (
-            <div className="flex items-center gap-2.5 flex-1">
-              <Loader2 size={18} className="text-amber-600 dark:text-amber-400 animate-spin shrink-0" />
+            <div className="flex items-center gap-3 flex-1">
+              <div className="relative">
+                <Loader2 size={20} className="text-amber-600 dark:text-amber-400 animate-spin" />
+                <div className="absolute inset-0 rounded-full border-2 border-amber-200 dark:border-amber-800 animate-ping opacity-20" />
+              </div>
               <div className="flex-1 min-w-0">
-                <span className="text-sm font-medium text-amber-800 dark:text-amber-400">
-                  {thinkingText || 'AI 正在整合...'}
-                </span>
-                {styleScore !== null && (
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <TrendingUp size={12} className={styleScore >= 80 ? 'text-green-500' : styleScore >= 60 ? 'text-amber-500' : 'text-red-500'} />
-                    <span className={`text-xs font-medium ${styleScore >= 80 ? 'text-green-600' : styleScore >= 60 ? 'text-amber-600' : 'text-red-600'}`}>
-                      风格评分: {styleScore}/100
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-amber-800 dark:text-amber-400">
+                    {thinkingText || 'AI 正在整合素材...'}
+                  </span>
+                  {styleScore !== null && (
+                    <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${
+                      styleScore >= 80 
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
+                        : styleScore >= 60 
+                          ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                          : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                    }`}>
+                      {styleScore}/100
                     </span>
-                  </div>
+                  )}
+                </div>
+                {streamingContent && (
+                  <p className="text-xs text-ink-500 dark:text-ink-400 mt-0.5 truncate">
+                    {streamingContent.slice(0, 60)}...
+                  </p>
                 )}
               </div>
               <button
                 onClick={handleCancel}
-                className="ml-auto px-3 py-1 rounded-lg border border-amber-200 dark:border-amber-900/50 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
+                className="shrink-0 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-900/50 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
               >
                 取消
               </button>
@@ -123,17 +136,28 @@ export default function AIIntegration({ onArticleGenerated, compact }: AIIntegra
           ) : (
             <>
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-ink-500 dark:text-ink-400 truncate">
-                  {fragmentCount > 0 ? `${fragmentCount} 条素材` : '暂无素材'}
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                  <p className="text-sm font-bold text-ink-700 dark:text-ink-300">
+                    {fragmentCount > 0 ? `${fragmentCount} 条素材待整合` : '暂无素材'}
+                  </p>
+                </div>
+                <p className="text-xs text-ink-500 dark:text-ink-400 mt-0.5">
+                  {fragmentCount > 0 
+                    ? fragmentCount < 3 
+                      ? '建议添加更多素材以获得更好效果' 
+                      : '素材充足，可生成高质量文章'
+                    : '请先添加写作素材'
+                  }
                 </p>
               </div>
               <button
                 onClick={handleGenerate}
                 disabled={fragmentCount === 0}
-                className="shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-ink-900 dark:bg-ink-100 dark:text-ink-900 text-white font-bold text-sm hover:bg-ink-800 dark:hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                className="shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-ink-900 dark:bg-ink-100 dark:text-ink-900 text-white font-bold text-sm hover:bg-ink-800 dark:hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
               >
                 <Sparkles size={15} />
-                AI 生成文章
+                {fragmentCount === 0 ? '需素材' : 'AI 生成'}
               </button>
             </>
           )}

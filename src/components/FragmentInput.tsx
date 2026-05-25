@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useWriting } from '../stores/writing-store';
-import { Send, Tag } from 'lucide-react';
+import { Send, Tag, Hash, Bookmark, Sparkles, X } from 'lucide-react';
 
 export default function FragmentInput() {
   const { activeProject, FragmentActions } = useWriting();
@@ -9,7 +9,10 @@ export default function FragmentInput() {
   const [tags, setTags] = useState('');
   const [showOptions, setShowOptions] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  const commonTags = ['灵感', '待展开', '数据', '引用', '观点', '故事', '金句', '问题'];
 
   useEffect(() => {
     if (expanded && textareaRef.current) {
@@ -23,18 +26,29 @@ export default function FragmentInput() {
     const trimmed = content.trim();
     if (!trimmed) return;
 
+    const allTags = [...selectedTags, ...(tags.trim() ? tags.split(/[,，]\s*/).filter(Boolean) : [])];
+
     FragmentActions.addFragment({
       projectId: activeProject.id,
       content: trimmed,
       note: note.trim() || undefined,
-      tags: tags.trim() ? tags.split(/[,，]\s*/).filter(Boolean) : [],
+      tags: allTags,
     });
 
     setContent('');
     setNote('');
     setTags('');
+    setSelectedTags([]);
     setShowOptions(false);
     setExpanded(false);
+  };
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags(prev => 
+      prev.includes(tag) 
+        ? prev.filter(t => t !== tag)
+        : [...prev, tag]
+    );
   };
 
   // Collapse on Escape, submit on Ctrl+Enter
@@ -50,13 +64,35 @@ export default function FragmentInput() {
 
   if (!expanded) {
     return (
-      <button
-        onClick={() => setExpanded(true)}
-        className="w-full flex items-center gap-3 px-4 py-4 rounded-2xl border-2 border-dashed border-ink-300 dark:border-ink-700 text-ink-400 dark:text-ink-500 hover:border-amber-400 dark:hover:border-amber-500 hover:text-amber-600 dark:hover:text-amber-400 transition-all group animate-fade-in"
-      >
-        <span className="text-xl group-hover:scale-110 transition-transform">+</span>
-        <span className="text-sm font-medium">记录一个想法、观点或素材片段...</span>
-      </button>
+      <div className="animate-fade-in">
+        <button
+          onClick={() => setExpanded(true)}
+          className="w-full flex items-center gap-3 px-4 py-4 rounded-2xl border-2 border-dashed border-ink-300 dark:border-ink-700 text-ink-400 dark:text-ink-500 hover:border-amber-400 dark:hover:border-amber-500 hover:text-amber-600 dark:hover:text-amber-400 transition-all group"
+        >
+          <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+            <span className="text-xl font-bold text-amber-600 dark:text-amber-400">+</span>
+          </div>
+          <div className="text-left flex-1">
+            <p className="text-sm font-bold text-ink-500 dark:text-ink-400 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+              记录新的写作素材
+            </p>
+            <p className="text-xs text-ink-400 dark:text-ink-500 mt-0.5">
+              想法、观点、引用、数据片段...
+            </p>
+          </div>
+          <Sparkles size={16} className="text-ink-300 dark:text-ink-600 group-hover:text-amber-400" />
+        </button>
+        {selectedTags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {selectedTags.map(tag => (
+              <span key={tag} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs">
+                <Hash size={10} />
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
     );
   }
 
@@ -73,10 +109,35 @@ export default function FragmentInput() {
       />
 
       {showOptions && (
-        <div className="px-4 pb-3 space-y-2.5 animate-fade-in">
+        <div className="px-4 pb-3 space-y-3 animate-fade-in">
+          {/* Quick tags */}
+          <div>
+            <label className="flex items-center gap-1.5 text-xs font-semibold text-ink-500 dark:text-ink-400 mb-2">
+              <Hash size={12} /> 快速标签
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {commonTags.map(tag => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => toggleTag(tag)}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    selectedTags.includes(tag)
+                      ? 'bg-amber-500 text-white shadow-sm'
+                      : 'bg-ink-100 dark:bg-ink-800 text-ink-600 dark:text-ink-400 hover:bg-ink-200 dark:hover:bg-ink-700'
+                  }`}
+                >
+                  {selectedTags.includes(tag) ? <X size={10} /> : <Hash size={10} />}
+                  {tag}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Custom tags input */}
           <div>
             <label className="flex items-center gap-1.5 text-xs font-semibold text-ink-500 dark:text-ink-400 mb-1">
-              <Tag size={12} /> 标签（逗号分隔）
+              <Tag size={12} /> 自定义标签（逗号分隔）
             </label>
             <input
               value={tags}
@@ -85,41 +146,82 @@ export default function FragmentInput() {
               className="w-full h-9 px-3 rounded-lg border border-ink-200 dark:border-ink-700 bg-ink-50 dark:bg-ink-800 text-xs text-ink-900 dark:text-ink-100 placeholder:text-ink-400 dark:placeholder:text-ink-500 focus:outline-none focus:border-amber-400 dark:focus:border-amber-500 transition-all"
             />
           </div>
+
+          {/* Selected tags preview */}
+          {selectedTags.length > 0 && (
+            <div className="pt-1">
+              <div className="text-xs text-ink-400 dark:text-ink-500 mb-1.5">已选择标签：</div>
+              <div className="flex flex-wrap gap-1.5">
+                {selectedTags.map(tag => (
+                  <span key={tag} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs">
+                    <Hash size={10} />
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => toggleTag(tag)}
+                      className="ml-0.5 text-amber-500 hover:text-amber-700"
+                    >
+                      <X size={10} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Note */}
           <div>
-            <label className="block text-xs font-semibold text-ink-500 dark:text-ink-400 mb-1">备注</label>
-            <input
+            <label className="flex items-center gap-1.5 text-xs font-semibold text-ink-500 dark:text-ink-400 mb-1">
+              <Bookmark size={12} /> 备注
+            </label>
+            <textarea
               value={note}
               onChange={e => setNote(e.target.value)}
-              placeholder="补充说明..."
-              className="w-full h-9 px-3 rounded-lg border border-ink-200 dark:border-ink-700 bg-ink-50 dark:bg-ink-800 text-xs text-ink-900 dark:text-ink-100 placeholder:text-ink-400 dark:placeholder:text-ink-500 focus:outline-none focus:border-amber-400 dark:focus:border-amber-500 transition-all"
+              placeholder="补充说明、来源、上下文..."
+              rows={2}
+              className="w-full px-3 py-2 rounded-lg border border-ink-200 dark:border-ink-700 bg-ink-50 dark:bg-ink-800 text-xs text-ink-900 dark:text-ink-100 placeholder:text-ink-400 dark:placeholder:text-ink-500 focus:outline-none focus:border-amber-400 dark:focus:border-amber-500 transition-all resize-none"
             />
           </div>
         </div>
       )}
 
       <div className="flex items-center justify-between px-4 py-2.5 bg-ink-50 dark:bg-ink-800/50 border-t border-ink-100 dark:border-ink-800">
-        <button
-          onClick={() => setShowOptions(!showOptions)}
-          className={`text-xs font-medium px-2.5 py-1.5 rounded-lg transition-all ${
-            showOptions ? 'bg-ink-200 dark:bg-ink-700 text-ink-700 dark:text-ink-200' : 'text-ink-500 dark:text-ink-400 hover:bg-ink-100 dark:hover:bg-ink-800'
-          }`}
-        >
-          {showOptions ? '收起选项' : '标签 & 备注'}
-        </button>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => { setExpanded(false); setContent(''); }}
-            className="text-xs text-ink-400 dark:text-ink-500 px-2.5 py-1.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors"
+            onClick={() => setShowOptions(!showOptions)}
+            className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all ${
+              showOptions ? 'bg-ink-200 dark:bg-ink-700 text-ink-700 dark:text-ink-200' : 'text-ink-500 dark:text-ink-400 hover:bg-ink-100 dark:hover:bg-ink-800'
+            }`}
+          >
+            {showOptions ? <X size={12} /> : <Tag size={12} />}
+            {showOptions ? '收起选项' : '标签 & 备注'}
+          </button>
+          {selectedTags.length > 0 && (
+            <span className="text-xs text-amber-600 dark:text-amber-400 font-medium bg-amber-100 dark:bg-amber-900/30 px-2 py-1 rounded-lg">
+              {selectedTags.length} 个标签
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { 
+              setExpanded(false); 
+              setContent(''); 
+              setSelectedTags([]);
+              setTags('');
+              setNote('');
+            }}
+            className="text-xs text-ink-400 dark:text-ink-500 px-3 py-1.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors"
           >
             取消
           </button>
           <button
             onClick={handleSubmit}
             disabled={!content.trim()}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-ink-900 dark:bg-ink-100 dark:text-ink-900 text-white text-xs font-bold hover:bg-ink-800 dark:hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-ink-900 dark:bg-ink-100 dark:text-ink-900 text-white text-xs font-bold hover:bg-ink-800 dark:hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
           >
             <Send size={13} />
-            记录
+            保存素材
           </button>
         </div>
       </div>
