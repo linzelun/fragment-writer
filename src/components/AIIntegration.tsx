@@ -8,7 +8,7 @@ interface AIIntegrationProps {
   compact?: boolean;
 }
 
-export default function AIIntegration({ onArticleGenerated, compact }: AIIntegrationProps) {
+export default function AIIntegration({ onArticleGenerated, compact = false }: AIIntegrationProps) {
   const { state, dispatch, activeProject, sortedFragments, ArticleActions } = useWriting();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
