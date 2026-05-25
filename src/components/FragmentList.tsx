@@ -24,7 +24,7 @@ export default function FragmentList({ fragments }: FragmentListProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 px-4 pb-4">
       <div className="flex items-center justify-between border-b border-ink-200 dark:border-ink-800 pb-2">
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-ink-900 dark:text-ink-100 uppercase tracking-wider">
