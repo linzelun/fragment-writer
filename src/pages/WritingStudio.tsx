@@ -216,9 +216,7 @@ export default function WritingStudio() {
 
       <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-ink-900/95 backdrop-blur-md border-t border-ink-200/60 dark:border-ink-800/60 px-3 sm:px-4 py-2 sm:py-3">
         <div className="max-w-2xl mx-auto">
-          <div className="rounded-xl bg-gradient-to-r from-amber-50/50 to-amber-100/30 dark:from-amber-900/20 dark:to-amber-800/10 p-3 sm:p-4">
-            <AIIntegration onArticleGenerated={() => setShowArticle(true)} compact />
-          </div>
+          <AIIntegration onArticleGenerated={() => setShowArticle(true)} compact />
         </div>
       </div>
 

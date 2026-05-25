@@ -164,6 +164,9 @@ export function WritingProvider({ children }: { children: ReactNode }) {
         const fragments = await api.fragmentsApi.listByProject(state.activeProjectId);
         dispatch({ type: 'SET_FRAGMENTS', fragments });
       }
+      // 刷新项目列表以更新 fragmentCount
+      const projects = await api.projectsApi.list();
+      dispatch({ type: 'SET_PROJECTS', projects });
       return id;
     }, [state.activeProjectId]),
 
@@ -173,6 +176,9 @@ export function WritingProvider({ children }: { children: ReactNode }) {
         const fragments = await api.fragmentsApi.listByProject(state.activeProjectId);
         dispatch({ type: 'SET_FRAGMENTS', fragments });
       }
+      // 刷新项目列表以更新 fragmentCount
+      const projects = await api.projectsApi.list();
+      dispatch({ type: 'SET_PROJECTS', projects });
     }, [state.activeProjectId]),
 
     deleteFragment: useCallback(async (id: string) => {
@@ -181,6 +187,9 @@ export function WritingProvider({ children }: { children: ReactNode }) {
         const fragments = await api.fragmentsApi.listByProject(state.activeProjectId);
         dispatch({ type: 'SET_FRAGMENTS', fragments });
       }
+      // 刷新项目列表以更新 fragmentCount
+      const projects = await api.projectsApi.list();
+      dispatch({ type: 'SET_PROJECTS', projects });
     }, [state.activeProjectId]),
 
     reloadFragments: useCallback(async () => {
@@ -188,6 +197,9 @@ export function WritingProvider({ children }: { children: ReactNode }) {
         const fragments = await api.fragmentsApi.listByProject(state.activeProjectId);
         dispatch({ type: 'SET_FRAGMENTS', fragments });
       }
+      // 刷新项目列表以更新 fragmentCount
+      const projects = await api.projectsApi.list();
+      dispatch({ type: 'SET_PROJECTS', projects });
     }, [state.activeProjectId]),
   };
 
