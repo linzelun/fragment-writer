@@ -8,7 +8,7 @@ import AIIntegration from '../components/AIIntegration';
 import ArticlePreview from '../components/ArticlePreview';
 import EmptyState from '../components/EmptyState';
 import SearchBar from '../components/SearchBar';
-import { Menu, Sparkles, BookOpen, ChevronRight, Moon, Sun, Search, ChevronDown, Layers } from 'lucide-react';
+import { Menu, Sparkles, BookOpen, ChevronRight, Moon, Sun, Search, Layers } from 'lucide-react';
 
 export default function WritingStudio() {
   const { state, activeProject, sortedFragments } = useWriting();
@@ -136,7 +136,6 @@ export default function WritingStudio() {
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <h1 className="font-extrabold text-sm text-ink-900 dark:text-ink-100 truncate">{activeProject.title}</h1>
-                <ChevronDown size={14} className="text-ink-400 dark:text-ink-500 shrink-0" />
               </div>
               <div className="flex items-center gap-2 mt-0.5">
                 <p className="text-xs text-ink-400 dark:text-ink-500 truncate">{activeProject.topic}</p>
