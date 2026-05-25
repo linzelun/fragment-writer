@@ -51,12 +51,37 @@ if (!tableExists) {
       summary TEXT DEFAULT '',
       generatedAt TEXT NOT NULL,
       fragmentCount INTEGER DEFAULT 0,
+      styleScore INTEGER DEFAULT NULL,
+      styleBreakdown TEXT DEFAULT '{}',
+      styleHighlights TEXT DEFAULT '[]',
+      styleImprovements TEXT DEFAULT '[]',
       createdAt TEXT NOT NULL,
       FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE
     );
     CREATE INDEX idx_article_versions_project ON article_versions(projectId, version);
   `);
   console.log('Migration: created article_versions table');
+} else {
+  // 检查并添加缺失的列
+  const versionColumns = db.prepare("PRAGMA table_info(article_versions)").all();
+  const columnNames = versionColumns.map(col => col.name);
+  
+  if (!columnNames.includes('styleScore')) {
+    db.exec('ALTER TABLE article_versions ADD COLUMN styleScore INTEGER DEFAULT NULL');
+    console.log('Migration: added styleScore column to article_versions');
+  }
+  if (!columnNames.includes('styleBreakdown')) {
+    db.exec('ALTER TABLE article_versions ADD COLUMN styleBreakdown TEXT DEFAULT "{}"');
+    console.log('Migration: added styleBreakdown column to article_versions');
+  }
+  if (!columnNames.includes('styleHighlights')) {
+    db.exec('ALTER TABLE article_versions ADD COLUMN styleHighlights TEXT DEFAULT "[]"');
+    console.log('Migration: added styleHighlights column to article_versions');
+  }
+  if (!columnNames.includes('styleImprovements')) {
+    db.exec('ALTER TABLE article_versions ADD COLUMN styleImprovements TEXT DEFAULT "[]"');
+    console.log('Migration: added styleImprovements column to article_versions');
+  }
 }
 
 db.exec(`
@@ -94,6 +119,26 @@ db.exec(`
     styleImprovements TEXT DEFAULT '[]'
   );
 `);
+
+// 检查并补充 articles 表缺失的列
+const articleColumns = db.prepare("PRAGMA table_info(articles)").all();
+const artColumnNames = articleColumns.map(col => col.name);
+if (!artColumnNames.includes('styleScore')) {
+  db.exec('ALTER TABLE articles ADD COLUMN styleScore INTEGER DEFAULT NULL');
+  console.log('Migration: added styleScore column to articles');
+}
+if (!artColumnNames.includes('styleBreakdown')) {
+  db.exec('ALTER TABLE articles ADD COLUMN styleBreakdown TEXT DEFAULT "{}"');
+  console.log('Migration: added styleBreakdown column to articles');
+}
+if (!artColumnNames.includes('styleHighlights')) {
+  db.exec('ALTER TABLE articles ADD COLUMN styleHighlights TEXT DEFAULT "[]"');
+  console.log('Migration: added styleHighlights column to articles');
+}
+if (!artColumnNames.includes('styleImprovements')) {
+  db.exec('ALTER TABLE articles ADD COLUMN styleImprovements TEXT DEFAULT "[]"');
+  console.log('Migration: added styleImprovements column to articles');
+}
 
 app.get('/api/projects', wrapRoute((req, res) => {
   const rows = db.prepare(`
