@@ -4,7 +4,7 @@ import { Clock, FileText, ArrowLeft, TrendingUp, Award, History, Loader2, Send, 
 import ReactMarkdown from 'react-markdown';
 import ExportPanel from './ExportPanel';
 import TableOfContents from './TableOfContents';
-import { rewriteWithUserFeedback } from '../services/ai';
+import { rewriteWithUserFeedback, DIMENSION_MAX_SCORES } from '../services/ai';
 import type { ArticleOutput } from '../types';
 
 interface ArticlePreviewProps {
@@ -337,14 +337,17 @@ export default function ArticlePreview({ onClose }: ArticlePreviewProps) {
                 {/* 评分明细 */}
                 {article.styleBreakdown && Object.keys(article.styleBreakdown).length > 0 && (
                   <div className="mt-3 grid grid-cols-2 gap-1.5">
-                    {Object.entries(article.styleBreakdown).map(([key, val]) => (
-                      <div key={key} className="flex items-center justify-between bg-white/50 dark:bg-ink-800/50 rounded-lg px-2.5 py-1.5">
-                        <span className="text-xs text-ink-500 dark:text-ink-400 capitalize">{key.replace(/_/g, ' ')}</span>
-                        <span className={`text-xs font-bold ml-2 ${
-                          val.score >= 8 ? 'text-green-600 dark:text-green-400' : val.score >= 6 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'
-                        }`}>{val.score}/10</span>
-                      </div>
-                    ))}
+                    {Object.entries(article.styleBreakdown).map(([key, val]) => {
+                      const maxScore = DIMENSION_MAX_SCORES[key] || 10;
+                      const ratio = maxScore > 0 ? val.score / maxScore : (val.score >= 0 ? 1 : 0);
+                      const colorClass = ratio >= 0.8 ? 'text-green-600 dark:text-green-400' : ratio >= 0.6 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400';
+                      return (
+                        <div key={key} className="flex items-center justify-between bg-white/50 dark:bg-ink-800/50 rounded-lg px-2.5 py-1.5">
+                          <span className="text-xs text-ink-500 dark:text-ink-400 capitalize">{key.replace(/_/g, ' ')}</span>
+                          <span className={`text-xs font-bold ml-2 ${colorClass}`}>{val.score}/{maxScore}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
