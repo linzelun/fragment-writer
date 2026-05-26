@@ -387,17 +387,17 @@ const REWRITE_PROMPT = `请以帕特里克·莫迪亚诺的风格重写以下文
 
 const DIMENSION_OPTIMIZATION_TEMPLATES: Record<string, { threshold: number; prompt: string }> = {
   time_jumps: {
-    threshold: 9,
-    prompt: `## ⚠️ 时间跳跃维度优化（当前得分低于9分）
+    threshold: 10,
+    prompt: `## ⚠️ 时间跳跃维度优化（目标：满分10分）
 
 **问题诊断**：文章的时间线性太强，缺乏莫迪亚诺标志性的非线性叙事。
 
 **必须执行的修改**：
-1. **插入至少3处明确的时间跳跃**：
+1. **插入至少4处明确的时间跳跃**：
    - 从"现在"突然跳到"十年前的某个下午"
    - 再从那个下午跳到"更早的一个冬日黄昏"
    - 每次跳跃都要用"我突然想起"、"不知为什么，我想到了"作为过渡
-   
+
 2. **打乱时间顺序**：不要按时间线叙述。让过去和现在交织在一起。
 
 3. **时间标记要模糊**：使用"那一年"、"某个星期二"、"大概是1968年"而非确切日期。
@@ -408,10 +408,10 @@ const DIMENSION_OPTIMIZATION_TEMPLATES: Record<string, { threshold: number; prom
 
 请在重写时强制加入这些时间跳跃元素。`,
   },
-  
+
   open_ending: {
-    threshold: 9,
-    prompt: `## ⚠️ 开放性结尾优化（当前得分低于9分）
+    threshold: 10,
+    prompt: `## ⚠️ 开放性结尾优化（目标：满分10分）
 
 **问题诊断**：文章结尾过于完整或总结性强，不符合莫迪亚诺的"淡出"美学。
 
@@ -470,12 +470,12 @@ const DIMENSION_OPTIMIZATION_TEMPLATES: Record<string, { threshold: number; prom
   },
 
   memory_uncertainty: {
-    threshold: 18,
-    prompt: `## 📝 记忆不确定性增强（当前得分低于18分）
+    threshold: 19,
+    prompt: `## 📝 记忆不确定性增强（目标：≥19/20分）
 
 **问题**：文章的叙述太过确定，缺少莫迪亚诺式的模糊感。
 
-**必须添加的表达**（每200字至少1次）：
+**必须添加的表达**（每150字至少1次）：
 - "我不确定是否..."
 - "也许那是..."
 - "似乎记得..."
@@ -490,12 +490,12 @@ const DIMENSION_OPTIMIZATION_TEMPLATES: Record<string, { threshold: number; prom
   },
 
   material_details: {
-    threshold: 18,
-    prompt: `## 🔍 物质细节密度提升（当前得分低于18分）
+    threshold: 19,
+    prompt: `## 🔍 物质细节密度提升（目标：≥19/20分）
 
 **问题**：文章缺少可触摸的具体物品/地点/感官细节。
 
-**必须添加的细节类型**（每150字至少1个）：
+**必须添加的细节类型**（每120字至少1个）：
 
 | 类别 | 示例 |
 |------|------|
@@ -512,20 +512,20 @@ const DIMENSION_OPTIMIZATION_TEMPLATES: Record<string, { threshold: number; prom
   },
 
   sentence_length: {
-    threshold: 13,
-    prompt: `## 📏 句子长度控制优化（当前得分低于13分）
+    threshold: 14,
+    prompt: `## 📏 句子长度控制优化（目标：≥14/15分）
 
 **问题**：句子过长或过于碎片化，缺乏自然的节奏感。
 
 **目标标准**：
-- 平均句长：20-30字
-- 最长句不超过40字
-- 最短句不低于6字（避免过度碎片化）
+- 平均句长：18-28字
+- 最长句不超过35字
+- 最短句不低于8字（避免过度碎片化）
 - 长短交替，形成呼吸感
 
 **修改技巧**：
-1. **长句拆分**：用句号将超过35字的句子拆成两句
-2. **短句合并**：将过短（<6字）的句子与前后文合并
+1. **长句拆分**：用句号将超过30字的句子拆成两句
+2. **短句合并**：将过短（<8字）的句子与前后文合并
 3. **节奏模式**：中长短中长（避免单调）
 
 **示例**：
@@ -536,8 +536,8 @@ const DIMENSION_OPTIMIZATION_TEMPLATES: Record<string, { threshold: number; prom
   },
 
   emotional_restraint: {
-    threshold: 13,
-    prompt: `## 😐 情感克制度提升（当前得分低于13分）
+    threshold: 14,
+    prompt: `## 😐 情感克制度提升（目标：≥14/15分）
 
 **问题**：文章中有直接的情感表达，不够克制。
 
@@ -617,7 +617,8 @@ export async function rewriteWithStyle(
   originalArticle: ArticleOutput,
   feedback: string[],
   reviewData?: { breakdown: Record<string, any>; improvements: string[]; score: number },
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  attemptNumber?: number
 ): Promise<ArticleOutput | null> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 120000);
@@ -626,6 +627,17 @@ export async function rewriteWithStyle(
     const userPrompt = reviewData 
       ? buildTargetedRewritePrompt(reviewData, originalArticle, project)
       : REWRITE_PROMPT + `标题：${originalArticle.title}\n\n正文：${originalArticle.content}\n\n主要问题：${feedback.join('；')}`;
+
+    let temperature = 0.8;
+    if (reviewData) {
+      if (attemptNumber === undefined || attemptNumber <= 2) {
+        temperature = 0.65;
+      } else if (attemptNumber <= 5) {
+        temperature = 0.55;
+      } else {
+        temperature = 0.45;
+      }
+    }
 
     const response = await fetch(PROXY_URL, {
       method: 'POST',
@@ -636,7 +648,7 @@ export async function rewriteWithStyle(
           { role: 'system', content: buildSystemPrompt(project) },
           { role: 'user', content: userPrompt },
         ],
-        temperature: reviewData ? 0.7 : 0.8,
+        temperature,
         max_tokens: 4096,
         stream: false,
       }),
@@ -695,8 +707,8 @@ export async function generateWithReview(
     article.styleImprovements = review.improvements;
   }
 
-  if (reviewScore < 80 && review?.improvements?.length) {
-    options.onThinking?.('风格评分不足，正在优化中...');
+  if (reviewScore < 90 && review?.improvements?.length) {
+    options.onThinking?.('风格评分不足90分，正在深度优化中...');
 
     let currentArticle = article;
     let currentScore = reviewScore;
@@ -704,15 +716,16 @@ export async function generateWithReview(
     let currentReviewData: { score: number; breakdown: Record<string, any>; highlights: string[]; improvements: string[]; } | null = review;
     let noImprovementCount = 0;
 
-    for (let attempt = 0; attempt < 5 && currentScore < 80; attempt++) {
-      options.onThinking?.(`第 ${attempt + 1} 次优化中... (当前 ${currentScore}/100)`);
+    for (let attempt = 0; attempt < 8 && currentScore < 90; attempt++) {
+      options.onThinking?.(`第 ${attempt + 1} 次优化中... (当前 ${currentScore}/100, 目标 ≥90)`);
 
       const rewritten = await rewriteWithStyle(
-        project, 
-        currentArticle, 
+        project,
+        currentArticle,
         currentImprovements,
         currentReviewData || undefined,
-        options.signal
+        options.signal,
+        attempt + 1
       );
 
       if (!rewritten) break;
@@ -727,20 +740,20 @@ export async function generateWithReview(
         currentImprovements = reReview?.improvements || [];
         currentReviewData = reReview;
         noImprovementCount = 0;
-        
-        if (reScore >= 80) {
-          options.onThinking?.(`✅ 优化完成！达到 ${reScore}/100`);
+
+        if (reScore >= 90) {
+          options.onThinking?.(`✅ 优化完成！达到优秀水平 ${reScore}/100`);
           break;
         }
       } else if (reScore === currentScore) {
         noImprovementCount++;
-        if (noImprovementCount >= 2) {
+        if (noImprovementCount >= 3) {
           options.onThinking?.(`⚠️ 连续 ${noImprovementCount} 次无提升，停止优化 (${currentScore}/100)`);
           break;
         }
       } else {
         noImprovementCount++;
-        if (noImprovementCount >= 2) {
+        if (noImprovementCount >= 3) {
           options.onThinking?.(`⚠️ 分数下降，回退到最佳版本 (${currentScore}/100)`);
           break;
         }
