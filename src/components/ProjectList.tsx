@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useWriting, generateId } from '../stores/writing-store';
-import { Plus, Trash2, Edit3, BookOpen, ChevronLeft, FileText, Clock } from 'lucide-react';
+import { useWriting } from '../stores/writing-store';
+import { Plus, Trash2, Edit3, ChevronLeft } from 'lucide-react';
 import ProjectForm from './ProjectForm';
 
 interface ProjectListProps {
@@ -27,9 +27,10 @@ export default function ProjectList({ onClose }: ProjectListProps) {
         </div>
         <button
           onClick={() => { setShowForm(true); setEditingId(null); }}
-          className="w-8 h-8 rounded-lg bg-ink-900 dark:bg-ink-100 dark:text-ink-900 text-white flex items-center justify-center hover:bg-ink-800 dark:hover:bg-white transition-colors"
+          className="w-11 h-11 rounded-xl bg-ink-900 dark:bg-ink-100 dark:text-ink-900 text-white flex items-center justify-center hover:bg-ink-800 dark:hover:bg-white active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 focus:ring-offset-ink-50 dark:focus:ring-offset-ink-950 shadow-sm"
+          aria-label="新建项目"
         >
-          <Plus size={18} />
+          <Plus size={20} />
         </button>
       </div>
 
@@ -54,19 +55,19 @@ export default function ProjectList({ onClose }: ProjectListProps) {
             {state.projects.map((project) => (
               <div
                 key={project.id}
-                className={`group relative rounded-xl px-4 py-3.5 cursor-pointer transition-all duration-200 ${
+                className={`group relative rounded-2xl px-4 py-3.5 cursor-pointer transition-all duration-200 border border-transparent ${
                   state.activeProjectId === project.id
-                    ? 'bg-ink-900 dark:bg-ink-100 text-white dark:text-ink-900 shadow-lg ring-2 ring-amber-400/20'
-                    : 'hover:bg-ink-100 dark:hover:bg-ink-800 text-ink-800 dark:text-ink-200 hover:shadow-md'
+                    ? 'bg-ink-900 dark:bg-ink-100 text-white dark:text-ink-900 shadow-lg ring-1 ring-amber-400/30 border-ink-800 dark:border-ink-200'
+                    : 'hover:bg-ink-100 dark:hover:bg-ink-800 text-ink-800 dark:text-ink-200 hover:shadow-sm hover:border-ink-200 dark:hover:border-ink-700'
                 }`}
                 onClick={() => {
                   ProjectActions.setActiveProject(project.id);
                   onClose?.();
                 }}
               >
-                <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-0.5">
                       <h3 className={`font-bold truncate text-sm ${
                         state.activeProjectId === project.id ? 'text-white dark:text-ink-900' : 'text-ink-900 dark:text-ink-100'
                       }`}>
@@ -79,51 +80,39 @@ export default function ProjectList({ onClose }: ProjectListProps) {
                       )}
                     </div>
                     <p className={`text-xs truncate ${
-                      state.activeProjectId === project.id ? 'text-white/70 dark:text-ink-700' : 'text-ink-500 dark:text-ink-400'
+                      state.activeProjectId === project.id ? 'text-white/60 dark:text-ink-600' : 'text-ink-400 dark:text-ink-500'
                     }`}>
                       {project.topic || '未设置主题'}
                     </p>
-                    
-                    {/* spacer */}
-                    <div className="mt-2" />
-
-                    <div className={`flex items-center justify-between text-xs ${
-                      state.activeProjectId === project.id ? 'text-white/50 dark:text-ink-600' : 'text-ink-400 dark:text-ink-500'
-                    }`}>
-                      <span className="flex items-center gap-1">
-                        <FileText size={10} />
-                        写作项目
-                      </span>
-                    </div>
                   </div>
-                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       onClick={(e) => { e.stopPropagation(); setEditingId(project.id); }}
-                      className={`p-1.5 rounded-lg transition-colors ${
+                      className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all active:scale-90 focus:outline-none focus:ring-2 focus:ring-amber-400 ${
                         state.activeProjectId === project.id
-                          ? 'hover:bg-white/15 dark:hover:bg-ink-900/20 text-white/80 dark:text-ink-700'
-                          : 'hover:bg-ink-200 dark:hover:bg-ink-700 text-ink-400 dark:text-ink-500'
+                          ? 'hover:bg-white/10 dark:hover:bg-ink-900/10 text-white/50 dark:text-ink-500'
+                          : 'hover:bg-ink-200 dark:hover:bg-ink-700 text-ink-300 dark:text-ink-600'
                       }`}
-                      title="编辑项目"
+                      aria-label="编辑项目"
                     >
-                      <Edit3 size={14} />
+                      <Edit3 size={18} />
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); setDeleteConfirm(project.id); }}
-                      className={`p-1.5 rounded-lg transition-colors ${
+                      className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all active:scale-90 focus:outline-none focus:ring-2 focus:ring-red-400 ${
                         state.activeProjectId === project.id
-                          ? 'hover:bg-white/15 dark:hover:bg-ink-900/20 text-white/80 dark:text-ink-700'
-                          : 'hover:bg-ink-200 dark:hover:bg-ink-700 text-ink-400 dark:text-ink-500'
+                          ? 'hover:bg-white/10 dark:hover:bg-ink-900/10 text-white/50 dark:text-ink-500'
+                          : 'hover:bg-ink-200 dark:hover:bg-ink-700 text-ink-300 dark:text-ink-600'
                       }`}
-                      title="删除项目"
+                      aria-label="删除项目"
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={18} />
                     </button>
                   </div>
                 </div>
                 {/* Active indicator */}
                 {state.activeProjectId === project.id && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-amber-400 rounded-r-full" />
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-amber-400 rounded-r-full" />
                 )}
               </div>
             ))}
@@ -140,13 +129,13 @@ export default function ProjectList({ onClose }: ProjectListProps) {
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="flex-1 h-10 rounded-xl border border-ink-200 dark:border-ink-700 text-ink-600 dark:text-ink-300 font-medium text-sm hover:bg-ink-50 dark:hover:bg-ink-800 transition-colors"
+                className="flex-1 h-11 rounded-xl border border-ink-200 dark:border-ink-700 text-ink-600 dark:text-ink-300 font-medium text-sm hover:bg-ink-50 dark:hover:bg-ink-800 active:scale-[0.98] transition-all focus:outline-none focus:ring-2 focus:ring-amber-400"
               >
                 取消
               </button>
               <button
                 onClick={() => { ProjectActions.deleteProject(deleteConfirm); setDeleteConfirm(null); }}
-                className="flex-1 h-10 rounded-xl bg-red-500 text-white font-medium text-sm hover:bg-red-600 transition-colors"
+                className="flex-1 h-11 rounded-xl bg-red-500 text-white font-medium text-sm hover:bg-red-600 active:scale-[0.98] transition-all focus:outline-none focus:ring-2 focus:ring-red-400"
               >
                 删除
               </button>
