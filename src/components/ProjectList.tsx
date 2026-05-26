@@ -84,33 +84,8 @@ export default function ProjectList({ onClose }: ProjectListProps) {
                       {project.topic || '未设置主题'}
                     </p>
                     
-                    {/* Progress bar for fragment count */}
-                    <div className="mt-2 mb-1.5">
-                      <div className="flex items-center justify-between text-xs mb-0.5">
-                        <span className={`font-medium ${
-                          state.activeProjectId === project.id ? 'text-white/80 dark:text-ink-600' : 'text-ink-500 dark:text-ink-500'
-                        }`}>
-                          素材进度
-                        </span>
-                        <span className={`font-bold ${
-                          state.activeProjectId === project.id ? 'text-white dark:text-ink-900' : 'text-ink-700 dark:text-ink-300'
-                        }`}>
-                          {(project.fragmentCount ?? 0)} 条
-                        </span>
-                      </div>
-                      <div className={`h-1 rounded-full overflow-hidden ${
-                        state.activeProjectId === project.id ? 'bg-white/20 dark:bg-ink-900/20' : 'bg-ink-200 dark:bg-ink-700'
-                      }`}>
-                        <div 
-                          className={`h-full transition-all duration-500 ${
-                            state.activeProjectId === project.id 
-                              ? 'bg-amber-300 dark:bg-amber-500' 
-                              : 'bg-ink-400 dark:bg-ink-500'
-                          }`}
-                          style={{ width: `${Math.min((project.fragmentCount ?? 0) * 10, 100)}%` }}
-                        />
-                      </div>
-                    </div>
+                    {/* spacer */}
+                    <div className="mt-2" />
 
                     <div className={`flex items-center justify-between text-xs ${
                       state.activeProjectId === project.id ? 'text-white/50 dark:text-ink-600' : 'text-ink-400 dark:text-ink-500'
@@ -133,7 +108,7 @@ export default function ProjectList({ onClose }: ProjectListProps) {
                       </span>
                       <span className="flex items-center gap-1">
                         <FileText size={10} />
-                        {project.fragmentCount === 0 ? '待开始' : '写作中'}
+                        写作项目
                       </span>
                     </div>
                   </div>

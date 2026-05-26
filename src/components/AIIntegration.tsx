@@ -139,25 +139,20 @@ export default function AIIntegration({ onArticleGenerated, compact }: AIIntegra
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
                   <p className="text-sm font-bold text-ink-700 dark:text-ink-300">
-                    {fragmentCount > 0 ? `${fragmentCount} 条素材待整合` : '暂无素材'}
+                    写作素材
                   </p>
                 </div>
                 <p className="text-xs text-ink-500 dark:text-ink-400 mt-0.5">
-                  {fragmentCount > 0 
-                    ? fragmentCount < 3 
-                      ? '建议添加更多素材以获得更好效果' 
-                      : '素材充足，可生成高质量文章'
-                    : '请先添加写作素材'
-                  }
+                    添加素材后可使用 AI 整合
                 </p>
               </div>
               <button
                 onClick={handleGenerate}
-                disabled={fragmentCount === 0}
+                disabled={false}
                 className="shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-ink-900 dark:bg-ink-100 dark:text-ink-900 text-white font-bold text-sm hover:bg-ink-800 dark:hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
               >
                 <Sparkles size={15} />
-                {fragmentCount === 0 ? '需素材' : 'AI 生成'}
+AI 生成
               </button>
             </>
           )}
@@ -248,16 +243,16 @@ export default function AIIntegration({ onArticleGenerated, compact }: AIIntegra
 
       <button
         onClick={handleGenerate}
-        disabled={fragmentCount === 0 || loading}
+        disabled={loading}
         className="w-full h-11 rounded-xl bg-ink-900 dark:bg-ink-100 dark:text-ink-900 text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-ink-800 dark:hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
       >
         <Sparkles size={16} />
-        {fragmentCount === 0 ? '请先添加写作素材' : loading ? '正在生成...' : '开始 AI 整合写作'}
+{loading ? '正在生成...' : '开始 AI 整合写作'}
       </button>
 
-      {fragmentCount > 0 && fragmentCount < 3 && !loading && (
+      {!loading && (
         <p className="text-xs text-ink-400 dark:text-ink-500 text-center mt-2">
-          建议添加更多素材以获得更好的整合效果（当前 {fragmentCount} 条）
+          建议添加更多素材以获得更好的整合效果
         </p>
       )}
     </div>

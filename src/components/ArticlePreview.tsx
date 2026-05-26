@@ -137,10 +137,6 @@ export default function ArticlePreview({ onClose }: ArticlePreviewProps) {
               <h1 className="font-bold text-lg text-ink-900 dark:text-ink-100 leading-tight">{article.title}</h1>
               <div className="flex items-center gap-3 mt-1.5 text-xs text-ink-400 dark:text-ink-500">
                 <span className="flex items-center gap-1">
-                  <FileText size={11} />
-                  {article.fragmentCount} 条素材
-                </span>
-                <span className="flex items-center gap-1">
                   <Clock size={11} />
                   {new Date(article.generatedAt).toLocaleString('zh-CN', {
                     month: 'short',
