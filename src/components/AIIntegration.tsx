@@ -236,7 +236,7 @@ AI 生成
           )}
 
           <p className="text-xs text-amber-600 dark:text-amber-500 pl-8">
-            流式生成 → 风格审查 → 智能优化
+            流式生成 → 风格审查
           </p>
         </div>
       )}
