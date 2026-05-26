@@ -712,12 +712,18 @@ export async function generateWithReview(
 
     let currentArticle = article;
     let currentScore = reviewScore;
+    let bestArticle = article;
+    let bestScore = reviewScore;
     let currentImprovements: string[] = review.improvements;
     let currentReviewData: { score: number; breakdown: Record<string, any>; highlights: string[]; improvements: string[]; } | null = review;
-    let noImprovementCount = 0;
+    let consecutiveNoImprovement = 0;
 
-    for (let attempt = 0; attempt < 8 && currentScore < 90; attempt++) {
-      options.onThinking?.(`第 ${attempt + 1} 次优化中... (当前 ${currentScore}/100, 目标 ≥90)`);
+    const MIN_ITERATIONS = 6;
+    const MAX_ITERATIONS = 15;
+    const MAX_CONSECUTIVE_NO_IMPROVEMENT = 6;
+
+    for (let attempt = 0; attempt < MAX_ITERATIONS && currentScore < 90; attempt++) {
+      options.onThinking?.(`第 ${attempt + 1}/${MAX_ITERATIONS} 次优化中... (当前 ${currentScore}/100, 最佳 ${bestScore}/100, 目标 ≥90)`);
 
       const rewritten = await rewriteWithStyle(
         project,
@@ -728,48 +734,75 @@ export async function generateWithReview(
         attempt + 1
       );
 
-      if (!rewritten) break;
+      if (!rewritten) {
+        options.onThinking?.(`⚠️ 第 ${attempt + 1} 次重写失败`);
+        break;
+      }
 
       const reReview = await reviewStyle(rewritten.content);
       const reScore = reReview?.score ?? currentScore;
       options.onReviewScore?.(reScore);
 
+      const scoreChange = reScore - currentScore;
+      const changeEmoji = scoreChange > 0 ? '📈' : scoreChange < 0 ? '📉' : '➡️';
+      
       if (reScore > currentScore) {
+        options.onThinking?.(`${changeEmoji} 第 ${attempt + 1} 次提升！${currentScore} → ${reScore} (+${scoreChange})`);
         currentArticle = rewritten;
         currentScore = reScore;
         currentImprovements = reReview?.improvements || [];
         currentReviewData = reReview;
-        noImprovementCount = 0;
+        consecutiveNoImprovement = 0;
+
+        if (reScore > bestScore) {
+          bestScore = reScore;
+          bestArticle = rewritten;
+        }
 
         if (reScore >= 90) {
-          options.onThinking?.(`✅ 优化完成！达到优秀水平 ${reScore}/100`);
+          options.onThinking?.(`✅🎉 优化完成！达到优秀水平 ${reScore}/100 (共 ${attempt + 1} 次迭代)`);
           break;
         }
       } else if (reScore === currentScore) {
-        noImprovementCount++;
-        if (noImprovementCount >= 3) {
-          options.onThinking?.(`⚠️ 连续 ${noImprovementCount} 次无提升，停止优化 (${currentScore}/100)`);
+        consecutiveNoImprovement++;
+        options.onThinking?.(`${changeEmoji} 第 ${attempt + 1} 次持平 (${reScore}/100)，继续尝试... (${consecutiveNoImprovement}/${MAX_CONSECUTIVE_NO_IMPROVEMENT})`);
+        
+        if (consecutiveNoImprovement >= MAX_CONSECUTIVE_NO_IMPROVEMENT && attempt >= MIN_ITERATIONS - 1) {
+          options.onThinking?.(`⚠️ 连续 ${consecutiveNoImprovement} 次无提升，停止优化 (最佳 ${bestScore}/100)`);
           break;
         }
+
+        if (reScore >= bestScore) {
+          bestScore = reScore;
+          bestArticle = rewritten;
+        }
       } else {
-        noImprovementCount++;
-        if (noImprovementCount >= 3) {
-          options.onThinking?.(`⚠️ 分数下降，回退到最佳版本 (${currentScore}/100)`);
+        consecutiveNoImprovement++;
+        options.onThinking?.(`${changeEmoji} 第 ${attempt + 1} 次下降 ${currentScore} → ${reScore} (${scoreChange})，保留最佳版本并继续尝试... (${consecutiveNoImprovement}/${MAX_CONSECUTIVE_NO_IMPROVEMENT})`);
+        
+        if (consecutiveNoImprovement >= MAX_CONSECUTIVE_NO_IMPROVEMENT && attempt >= MIN_ITERATIONS - 1) {
+          options.onThinking?.(`⚠️ 连续 ${consecutiveNoImprovement} 次未超越最佳分数，停止优化 (最佳 ${bestScore}/100)`);
           break;
         }
       }
     }
 
-    // 将最终优化后的评分数据保存到文章对象中
-    currentArticle.styleScore = currentScore;
-    if (currentReviewData) {
-      currentArticle.styleBreakdown = currentReviewData.breakdown;
-      currentArticle.styleHighlights = currentReviewData.highlights;
-      currentArticle.styleImprovements = currentReviewData.improvements;
+    if (currentScore < 90) {
+      options.onThinking?.(`🔄 优化结束 - 最终得分: ${currentScore}/100, 最佳得分: ${bestScore}/100, 总迭代次数已用完`);
     }
-    
-    currentArticle.fragmentCount = fragments.length;
-    return { article: currentArticle, reviewScore: currentScore, reviewData: currentReviewData };
+
+    const finalArticle = bestScore >= currentScore ? bestArticle : currentArticle;
+    const finalScore = Math.max(bestScore, currentScore);
+
+    finalArticle.styleScore = finalScore;
+    if (currentReviewData) {
+      finalArticle.styleBreakdown = currentReviewData.breakdown;
+      finalArticle.styleHighlights = currentReviewData.highlights;
+      finalArticle.styleImprovements = currentReviewData.improvements;
+    }
+
+    finalArticle.fragmentCount = fragments.length;
+    return { article: finalArticle, reviewScore: finalScore, reviewData: currentReviewData };
   }
 
   return { article, reviewScore, reviewData: review };
