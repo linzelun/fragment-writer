@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useWriting } from '../stores/writing-store';
-import { Plus, Trash2, Edit3, ChevronLeft } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import ProjectForm from './ProjectForm';
 
 interface ProjectListProps {
@@ -51,71 +51,100 @@ export default function ProjectList({ onClose }: ProjectListProps) {
             <p className="text-xs text-ink-400 dark:text-ink-500">创建一个项目，开始记录你的思考碎片</p>
           </div>
         ) : (
-          <div className="space-y-1">
-            {state.projects.map((project) => (
-              <div
-                key={project.id}
-                className={`group relative rounded-2xl px-4 py-3.5 cursor-pointer transition-all duration-200 border border-transparent ${
-                  state.activeProjectId === project.id
-                    ? 'bg-ink-900 dark:bg-ink-100 text-white dark:text-ink-900 shadow-lg ring-1 ring-amber-400/30 border-ink-800 dark:border-ink-200'
-                    : 'hover:bg-ink-100 dark:hover:bg-ink-800 text-ink-800 dark:text-ink-200 hover:shadow-sm hover:border-ink-200 dark:hover:border-ink-700'
-                }`}
-                onClick={() => {
-                  ProjectActions.setActiveProject(project.id);
-                  onClose?.();
-                }}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <h3 className={`font-bold truncate text-sm ${
-                        state.activeProjectId === project.id ? 'text-white dark:text-ink-900' : 'text-ink-900 dark:text-ink-100'
-                      }`}>
-                        {project.title || '未命名项目'}
-                      </h3>
-                      {state.activeProjectId === project.id && (
-                        <span className="text-[10px] font-bold bg-amber-400 text-ink-900 px-1.5 py-0.5 rounded-full shrink-0">
-                          当前
-                        </span>
-                      )}
-                    </div>
-                    <p className={`text-xs truncate ${
-                      state.activeProjectId === project.id ? 'text-white/60 dark:text-ink-600' : 'text-ink-400 dark:text-ink-500'
+          <div className="space-y-2.5 px-1">
+            {state.projects.map((project) => {
+              const firstChar = project.title?.[0]?.toUpperCase() || '✍️';
+              const colorVariants = [
+                'from-amber-200 to-orange-300',
+                'from-blue-200 to-cyan-300',
+                'from-purple-200 to-pink-300',
+                'from-green-200 to-emerald-300',
+                'from-rose-200 to-red-300'
+              ];
+              const colorIndex = project.title?.charCodeAt(0) % colorVariants.length || 0;
+              const gradientClass = colorVariants[colorIndex];
+              
+              return (
+                <div
+                  key={project.id}
+                  className={`group relative rounded-2xl px-4 pt-4 pb-3.5 cursor-pointer transition-all duration-300 ${
+                    state.activeProjectId === project.id
+                      ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-xl ring-2 ring-amber-300/40'
+                      : 'bg-white/80 dark:bg-ink-900/80 text-ink-900 dark:text-ink-100 shadow-md hover:shadow-xl hover:-translate-y-0.5 backdrop-blur-sm'
+                  }`}
+                  onClick={() => {
+                    ProjectActions.setActiveProject(project.id);
+                    onClose?.();
+                  }}
+                >
+                  <div className="flex items-start gap-3">
+                    {/* Icon/Initial Badge */}
+                    <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold ${
+                      state.activeProjectId === project.id
+                        ? 'bg-white/20 text-white'
+                        : `bg-gradient-to-br ${gradientClass} text-ink-900 shadow-sm`
                     }`}>
-                      {project.topic || '未设置主题'}
-                    </p>
+                      {state.activeProjectId === project.id ? <Sparkles size={20} /> : firstChar}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className={`font-bold text-base truncate ${
+                          state.activeProjectId === project.id ? 'text-white' : 'text-ink-900 dark:text-ink-100'
+                        }`}>
+                          {project.title || '未命名项目'}
+                        </h3>
+                        <ChevronRight 
+                          size={16} 
+                          className={`transition-transform group-hover:translate-x-0.5 ${
+                            state.activeProjectId === project.id ? 'text-white/80' : 'text-ink-300 dark:text-ink-600'
+                          }`}
+                        />
+                      </div>
+                      
+                      <p className={`text-sm truncate mb-2 ${
+                        state.activeProjectId === project.id ? 'text-white/80' : 'text-ink-500 dark:text-ink-400'
+                      }`}>
+                        {project.topic || '未设置主题'}
+                      </p>
+
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setEditingId(project.id); }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-amber-400 ${
+                            state.activeProjectId === project.id
+                              ? 'bg-white/20 text-white hover:bg-white/30'
+                              : 'bg-ink-100 dark:bg-ink-800 text-ink-600 dark:text-ink-400 hover:bg-ink-200 dark:hover:bg-ink-700'
+                          }`}
+                          aria-label="编辑项目"
+                        >
+                          编辑
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDeleteConfirm(project.id); }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-red-400 ${
+                            state.activeProjectId === project.id
+                              ? 'bg-white/20 text-white hover:bg-white/30'
+                              : 'bg-ink-100 dark:bg-ink-800 text-ink-600 dark:text-ink-400 hover:bg-ink-200 dark:hover:bg-ink-700'
+                          }`}
+                          aria-label="删除项目"
+                        >
+                          删除
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setEditingId(project.id); }}
-                      className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all active:scale-90 focus:outline-none focus:ring-2 focus:ring-amber-400 ${
-                        state.activeProjectId === project.id
-                          ? 'hover:bg-white/10 dark:hover:bg-ink-900/10 text-white/50 dark:text-ink-500'
-                          : 'hover:bg-ink-200 dark:hover:bg-ink-700 text-ink-300 dark:text-ink-600'
-                      }`}
-                      aria-label="编辑项目"
-                    >
-                      <Edit3 size={18} />
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setDeleteConfirm(project.id); }}
-                      className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all active:scale-90 focus:outline-none focus:ring-2 focus:ring-red-400 ${
-                        state.activeProjectId === project.id
-                          ? 'hover:bg-white/10 dark:hover:bg-ink-900/10 text-white/50 dark:text-ink-500'
-                          : 'hover:bg-ink-200 dark:hover:bg-ink-700 text-ink-300 dark:text-ink-600'
-                      }`}
-                      aria-label="删除项目"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
+
+                  {/* Status badge */}
+                  {state.activeProjectId === project.id && (
+                    <div className="absolute -top-1.5 -right-1.5 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                      当前
+                    </div>
+                  )}
                 </div>
-                {/* Active indicator */}
-                {state.activeProjectId === project.id && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-amber-400 rounded-r-full" />
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
