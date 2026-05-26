@@ -699,7 +699,6 @@ export async function generateWithReview(
   const reviewScore = review?.score ?? 70;
   options.onReviewScore?.(reviewScore);
 
-  // 将首次评分数据保存到文章对象中
   article.styleScore = reviewScore;
   if (review) {
     article.styleBreakdown = review.breakdown;
@@ -707,103 +706,109 @@ export async function generateWithReview(
     article.styleImprovements = review.improvements;
   }
 
-  if (reviewScore < 90 && review?.improvements?.length) {
-    options.onThinking?.('风格评分不足90分，正在深度优化中...');
-
-    let currentArticle = article;
-    let currentScore = reviewScore;
-    let bestArticle = article;
-    let bestScore = reviewScore;
-    let currentImprovements: string[] = review.improvements;
-    let currentReviewData: { score: number; breakdown: Record<string, any>; highlights: string[]; improvements: string[]; } | null = review;
-    let consecutiveNoImprovement = 0;
-
-    const MIN_ITERATIONS = 6;
-    const MAX_ITERATIONS = 15;
-    const MAX_CONSECUTIVE_NO_IMPROVEMENT = 6;
-
-    for (let attempt = 0; attempt < MAX_ITERATIONS && currentScore < 90; attempt++) {
-      options.onThinking?.(`第 ${attempt + 1}/${MAX_ITERATIONS} 次优化中... (当前 ${currentScore}/100, 最佳 ${bestScore}/100, 目标 ≥90)`);
-
-      const rewritten = await rewriteWithStyle(
-        project,
-        currentArticle,
-        currentImprovements,
-        currentReviewData || undefined,
-        options.signal,
-        attempt + 1
-      );
-
-      if (!rewritten) {
-        options.onThinking?.(`⚠️ 第 ${attempt + 1} 次重写失败`);
-        break;
-      }
-
-      const reReview = await reviewStyle(rewritten.content);
-      const reScore = reReview?.score ?? currentScore;
-      options.onReviewScore?.(reScore);
-
-      const scoreChange = reScore - currentScore;
-      const changeEmoji = scoreChange > 0 ? '📈' : scoreChange < 0 ? '📉' : '➡️';
-      
-      if (reScore > currentScore) {
-        options.onThinking?.(`${changeEmoji} 第 ${attempt + 1} 次提升！${currentScore} → ${reScore} (+${scoreChange})`);
-        currentArticle = rewritten;
-        currentScore = reScore;
-        currentImprovements = reReview?.improvements || [];
-        currentReviewData = reReview;
-        consecutiveNoImprovement = 0;
-
-        if (reScore > bestScore) {
-          bestScore = reScore;
-          bestArticle = rewritten;
-        }
-
-        if (reScore >= 90) {
-          options.onThinking?.(`✅🎉 优化完成！达到优秀水平 ${reScore}/100 (共 ${attempt + 1} 次迭代)`);
-          break;
-        }
-      } else if (reScore === currentScore) {
-        consecutiveNoImprovement++;
-        options.onThinking?.(`${changeEmoji} 第 ${attempt + 1} 次持平 (${reScore}/100)，继续尝试... (${consecutiveNoImprovement}/${MAX_CONSECUTIVE_NO_IMPROVEMENT})`);
-        
-        if (consecutiveNoImprovement >= MAX_CONSECUTIVE_NO_IMPROVEMENT && attempt >= MIN_ITERATIONS - 1) {
-          options.onThinking?.(`⚠️ 连续 ${consecutiveNoImprovement} 次无提升，停止优化 (最佳 ${bestScore}/100)`);
-          break;
-        }
-
-        if (reScore >= bestScore) {
-          bestScore = reScore;
-          bestArticle = rewritten;
-        }
-      } else {
-        consecutiveNoImprovement++;
-        options.onThinking?.(`${changeEmoji} 第 ${attempt + 1} 次下降 ${currentScore} → ${reScore} (${scoreChange})，保留最佳版本并继续尝试... (${consecutiveNoImprovement}/${MAX_CONSECUTIVE_NO_IMPROVEMENT})`);
-        
-        if (consecutiveNoImprovement >= MAX_CONSECUTIVE_NO_IMPROVEMENT && attempt >= MIN_ITERATIONS - 1) {
-          options.onThinking?.(`⚠️ 连续 ${consecutiveNoImprovement} 次未超越最佳分数，停止优化 (最佳 ${bestScore}/100)`);
-          break;
-        }
-      }
-    }
-
-    if (currentScore < 90) {
-      options.onThinking?.(`🔄 优化结束 - 最终得分: ${currentScore}/100, 最佳得分: ${bestScore}/100, 总迭代次数已用完`);
-    }
-
-    const finalArticle = bestScore >= currentScore ? bestArticle : currentArticle;
-    const finalScore = Math.max(bestScore, currentScore);
-
-    finalArticle.styleScore = finalScore;
-    if (currentReviewData) {
-      finalArticle.styleBreakdown = currentReviewData.breakdown;
-      finalArticle.styleHighlights = currentReviewData.highlights;
-      finalArticle.styleImprovements = currentReviewData.improvements;
-    }
-
-    finalArticle.fragmentCount = fragments.length;
-    return { article: finalArticle, reviewScore: finalScore, reviewData: currentReviewData };
-  }
-
   return { article, reviewScore, reviewData: review };
+}
+
+const USER_FEEDBACK_REWRITE_PROMPT = `你是一位深受帕特里克·莫迪亚诺（Patrick Modiano）影响的作家。
+
+请根据用户的修改建议，对以下文章进行针对性修改。
+
+## 修改原则
+1. 忠实执行用户的具体修改要求，这些要求是你的最高优先级指令
+2. 在满足用户要求的前提下，保持莫迪亚诺的写作风格
+3. 只修改用户要求的部分，保持其他内容不变
+4. 保持文章的篇幅和整体结构
+5. 使用 Markdown 格式输出，## 标题 作为文章标题
+
+## 用户修改要求
+
+{USER_FEEDBACK}
+
+## 原文
+
+标题：{ARTICLE_TITLE}
+
+{ARTICLE_CONTENT}
+`;
+
+export async function rewriteWithUserFeedback(
+  project: WritingProject,
+  article: ArticleOutput,
+  userFeedback: string,
+  options: {
+    signal?: AbortSignal;
+    onThinking?: (text: string) => void;
+    onError?: (msg: string) => void;
+    onReviewScore?: (score: number) => void;
+  } = {}
+): Promise<{ article: ArticleOutput; reviewScore: number; reviewData?: any } | null> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 180000);
+
+  try {
+    options.onThinking?.('正在理解您的修改需求...');
+
+    const userPrompt = USER_FEEDBACK_REWRITE_PROMPT
+      .replace('{USER_FEEDBACK}', userFeedback)
+      .replace('{ARTICLE_TITLE}', article.title)
+      .replace('{ARTICLE_CONTENT}', article.content);
+
+    const response = await fetch(PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [
+          { role: 'system', content: buildSystemPrompt(project) },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.65,
+        max_tokens: 4096,
+        stream: false,
+      }),
+      signal: options.signal || controller.signal,
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(
+        (errData as { error?: { message?: string } }).error?.message || `请求失败 (${response.status})`
+      );
+    }
+
+    const data = await response.json();
+    const fullText: string = data.choices?.[0]?.message?.content || '';
+
+    if (!fullText) {
+      options.onError?.('AI 返回内容为空，请重试');
+      return null;
+    }
+
+    const revisedArticle = parseArticleText(fullText, article.title);
+    revisedArticle.fragmentCount = article.fragmentCount;
+
+    options.onThinking?.('正在审查修改后的风格...');
+    const review = await reviewStyle(revisedArticle.content);
+    const reviewScore = review?.score ?? 70;
+    options.onReviewScore?.(reviewScore);
+
+    revisedArticle.styleScore = reviewScore;
+    if (review) {
+      revisedArticle.styleBreakdown = review.breakdown;
+      revisedArticle.styleHighlights = review.highlights;
+      revisedArticle.styleImprovements = review.improvements;
+    }
+
+    return { article: revisedArticle, reviewScore, reviewData: review };
+  } catch (err: unknown) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      options.onError?.('操作已取消');
+      return null;
+    }
+    const message = err instanceof Error ? err.message : '未知错误';
+    options.onError?.(message);
+    return null;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useWriting } from '../stores/writing-store';
-import { Clock, FileText, ArrowLeft, TrendingUp, Award, History, Loader2 } from 'lucide-react';
+import { Clock, FileText, ArrowLeft, TrendingUp, Award, History, Loader2, Send, AlertCircle, X, PenLine } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import ExportPanel from './ExportPanel';
 import TableOfContents from './TableOfContents';
+import { rewriteWithUserFeedback } from '../services/ai';
 import type { ArticleOutput } from '../types';
 
 interface ArticlePreviewProps {
@@ -23,13 +24,19 @@ interface VersionSummary {
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export default function ArticlePreview({ onClose }: ArticlePreviewProps) {
-  const { activeProject, state } = useWriting();
+  const { activeProject, state, dispatch, ArticleActions } = useWriting();
 
   const [versions, setVersions] = useState<VersionSummary[]>([]);
   const [viewingVersion, setViewingVersion] = useState<VersionSummary | null>(null);
   const [versionContent, setVersionContent] = useState<ArticleOutput | null>(null);
   const [loadingVersion, setLoadingVersion] = useState(false);
   const [showVersions, setShowVersions] = useState(false);
+
+  const [feedbackText, setFeedbackText] = useState('');
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
+  const [feedbackThinking, setFeedbackThinking] = useState('');
+  const [feedbackScore, setFeedbackScore] = useState<number | null>(null);
 
   if (!activeProject) return null;
 
@@ -71,6 +78,54 @@ export default function ArticlePreview({ onClose }: ArticlePreviewProps) {
   const handleBackToCurrent = () => {
     setVersionContent(null);
     setViewingVersion(null);
+  };
+
+  const handleSubmitFeedback = async () => {
+    const trimmed = feedbackText.trim();
+    if (!trimmed || feedbackLoading) return;
+
+    setFeedbackLoading(true);
+    setFeedbackError(null);
+    setFeedbackThinking('');
+    setFeedbackScore(null);
+
+    try {
+      const result = await rewriteWithUserFeedback(
+        activeProject,
+        article,
+        trimmed,
+        {
+          onThinking: (text) => setFeedbackThinking(text),
+          onError: (msg) => setFeedbackError(msg),
+          onReviewScore: (score) => setFeedbackScore(score),
+        }
+      );
+
+      if (result) {
+        const revisedArticle = {
+          ...result.article,
+          styleScore: result.reviewScore,
+        };
+
+        ArticleActions.saveArticle(activeProject.id, revisedArticle).catch(() => {});
+        dispatch({ type: 'SAVE_ARTICLE', projectId: activeProject.id, article: revisedArticle });
+
+        setFeedbackText('');
+        setFeedbackThinking('');
+        setFeedbackScore(null);
+      }
+    } catch {
+      setFeedbackError('修改请求失败，请重试');
+    } finally {
+      setFeedbackLoading(false);
+    }
+  };
+
+  const handleFeedbackKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmitFeedback();
+    }
   };
 
   if (!article) return null;
@@ -296,6 +351,60 @@ export default function ArticlePreview({ onClose }: ArticlePreviewProps) {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="shrink-0 border-t border-ink-200 dark:border-ink-800 bg-white dark:bg-ink-900 px-3 py-3">
+        {feedbackError && (
+          <div className="mb-2 flex items-start gap-2 p-2.5 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 animate-fade-in">
+            <AlertCircle size={14} className="text-red-500 dark:text-red-400 shrink-0 mt-0.5" />
+            <p className="text-xs text-red-600 dark:text-red-400 flex-1">{feedbackError}</p>
+            <button onClick={() => setFeedbackError(null)} className="shrink-0 p-0.5 text-red-400 dark:text-red-500 hover:text-red-600 dark:hover:text-red-400">
+              <X size={12} />
+            </button>
+          </div>
+        )}
+
+        {feedbackThinking && (
+          <div className="mb-2 flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 animate-fade-in">
+            <Loader2 size={14} className="text-amber-600 dark:text-amber-400 animate-spin shrink-0" />
+            <span className="text-xs text-amber-700 dark:text-amber-400 flex-1">{feedbackThinking}</span>
+            {feedbackScore !== null && (
+              <span className={`text-xs font-bold ml-auto shrink-0 ${feedbackScore >= 80 ? 'text-green-600' : feedbackScore >= 60 ? 'text-amber-600' : 'text-red-600'}`}>
+                {feedbackScore}/100
+              </span>
+            )}
+          </div>
+        )}
+
+        {!feedbackLoading && (
+          <div className="flex items-end gap-2">
+            <div className="flex-1 relative">
+              <textarea
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                onKeyDown={handleFeedbackKeyDown}
+                placeholder="输入修改建议...（如：句子再短一些、增加一处时间跳跃、结尾更开放）"
+                rows={2}
+                className="w-full resize-none rounded-xl border border-ink-200 dark:border-ink-700 bg-ink-50 dark:bg-ink-800 px-3.5 py-2.5 text-sm text-ink-800 dark:text-ink-200 placeholder:text-ink-400 dark:placeholder:text-ink-500 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400 dark:focus:border-amber-500 transition-colors"
+              />
+              <div className="absolute right-2 bottom-2 flex items-center gap-1">
+                <PenLine size={12} className="text-ink-300 dark:text-ink-600" />
+              </div>
+            </div>
+            <button
+              onClick={handleSubmitFeedback}
+              disabled={!feedbackText.trim()}
+              className="shrink-0 h-10 w-10 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:bg-ink-200 dark:disabled:bg-ink-700 text-white flex items-center justify-center transition-colors disabled:cursor-not-allowed"
+            >
+              <Send size={16} />
+            </button>
+          </div>
+        )}
+        {!feedbackLoading && (
+          <p className="text-xs text-ink-400 dark:text-ink-500 text-center mt-2">
+            输入修改建议后按 Enter 发送，AI 将针对性地修改文章
+          </p>
+        )}
       </div>
 
       <TableOfContents content={article.content} />
