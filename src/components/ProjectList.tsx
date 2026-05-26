@@ -91,22 +91,6 @@ export default function ProjectList({ onClose }: ProjectListProps) {
                       state.activeProjectId === project.id ? 'text-white/50 dark:text-ink-600' : 'text-ink-400 dark:text-ink-500'
                     }`}>
                       <span className="flex items-center gap-1">
-                        <Clock size={10} />
-                        {project.lastFragmentAt 
-                          ? (() => {
-                              const now = new Date();
-                              const last = new Date(project.lastFragmentAt);
-                              const diffHours = Math.floor((now.getTime() - last.getTime()) / (1000 * 60 * 60));
-                              
-                              if (diffHours < 1) return '刚刚';
-                              if (diffHours < 24) return `${diffHours}小时前`;
-                              if (diffHours < 168) return `${Math.floor(diffHours / 24)}天前`;
-                              return new Date(project.lastFragmentAt).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
-                            })()
-                          : ''
-                        }
-                      </span>
-                      <span className="flex items-center gap-1">
                         <FileText size={10} />
                         写作项目
                       </span>
