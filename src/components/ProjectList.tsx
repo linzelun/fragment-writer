@@ -103,7 +103,7 @@ export default function ProjectList({ onClose }: ProjectListProps) {
                               if (diffHours < 168) return `${Math.floor(diffHours / 24)}天前`;
                               return new Date(project.lastFragmentAt).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
                             })()
-                          : '从未更新'
+                          : ''
                         }
                       </span>
                       <span className="flex items-center gap-1">
