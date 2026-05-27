@@ -41,8 +41,8 @@ export default {
         serif: ['"Noto Serif SC"', '"Source Han Serif SC"', '"Songti SC"', 'Georgia', 'serif'],
       },
       animation: {
-        'fade-in': 'fadeIn 0.5s ease both',
-        'fade-up': 'fadeUp 0.5s ease both',
+        'fade-in': 'fadeIn 0.4s cubic-bezier(0.25, 1, 0.5, 1) both',
+        'fade-up': 'fadeUp 0.45s cubic-bezier(0.25, 1, 0.5, 1) both',
         'slide-up': 'slideUp 0.4s cubic-bezier(0.22, 1.2, 0.36, 1) both',
         'slide-in-left': 'slideInLeft 0.3s cubic-bezier(0.22, 1.2, 0.36, 1) both',
         'pulse-soft': 'pulseSoft 2s ease-in-out infinite',

@@ -10,7 +10,7 @@ interface SearchBarProps {
 export default function SearchBar({ value, onChange, placeholder = '搜索素材...', resultCount }: SearchBarProps) {
   return (
     <div className="relative">
-      <div className="flex items-center gap-2 px-3 h-10 bg-white dark:bg-ink-800 rounded-xl border border-ink-200 dark:border-ink-700 shadow-sm transition-all focus-within:border-amber-400 dark:focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-100 dark:focus-within:ring-amber-900/20">
+      <div className="flex items-center gap-2 px-3 h-10 bg-white dark:bg-ink-800 rounded-xl ring-1 ring-ink-900/10 dark:ring-ink-100/10 shadow-sm transition-all duration-200 focus-within:ring-2 focus-within:ring-blue-400 dark:focus-within:ring-blue-500 focus-within:shadow-md">
         <Search size={15} className="text-ink-400 dark:text-ink-500 shrink-0" />
         <input
           type="text"

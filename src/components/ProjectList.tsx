@@ -16,7 +16,7 @@ export default function ProjectList({ onClose }: ProjectListProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-ink-200 dark:border-ink-800">
+      <div className="flex items-center justify-between px-4 py-3 ring-1 ring-ink-900/[0.04] dark:ring-ink-100/[0.04]">
         <div className="flex items-center gap-2">
           {onClose && (
             <button onClick={onClose} className="p-1 -ml-1 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors">
