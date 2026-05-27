@@ -47,8 +47,8 @@ const FragmentCard = memo(function FragmentCard({ fragment, index }: FragmentCar
 
   return (
     <div
-      className="group bg-white dark:bg-ink-900 rounded-xl p-5 ring-1 ring-ink-900/[0.04] dark:ring-ink-100/[0.04] transition-all duration-200 hover:ring-ink-900/[0.08] dark:hover:ring-ink-100/[0.06] animate-fade-up"
-      style={{ animationDelay: `${Math.min(index * 50, 300)}ms` }}
+      className="group bg-white/80 dark:bg-ink-900/80 rounded-xl shadow-sm ring-1 ring-ink-900/5 dark:ring-ink-100/5 p-4 transition-all duration-200 hover:shadow-md hover:ring-amber-300/20 dark:hover:ring-amber-600/10 animate-fade-up"
+      style={{ animationDelay: `${Math.min(index * 30, 300)}ms` }}
     >
       {editing ? (
         <div className="space-y-3">
@@ -56,36 +56,36 @@ const FragmentCard = memo(function FragmentCard({ fragment, index }: FragmentCar
             value={editContent}
             onChange={e => setEditContent(e.target.value)}
             rows={3}
-            className="w-full px-3 py-2 rounded-lg ring-1 ring-ink-200 dark:ring-ink-700 bg-ink-50 dark:bg-ink-800 text-[15px] text-ink-900 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500 resize-none transition-all placeholder:text-ink-400"
+            className="w-full px-3 py-2 rounded-lg border border-ink-200 dark:border-ink-700 bg-ink-50 dark:bg-ink-800 text-sm text-ink-900 dark:text-ink-100 focus:outline-none focus:border-amber-400 dark:focus:border-amber-500 focus:ring-1 focus:ring-amber-100 dark:focus:ring-amber-900/30 resize-none transition-all"
             autoFocus
           />
           <input
             value={editNote}
             onChange={e => setEditNote(e.target.value)}
             placeholder="备注（可选）"
-            className="w-full h-10 px-3 rounded-lg ring-1 ring-ink-200 dark:ring-ink-700 bg-ink-50 dark:bg-ink-800 text-sm text-ink-900 dark:text-ink-100 placeholder:text-ink-400 dark:placeholder:text-ink-500 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500 transition-all"
+            className="w-full h-9 px-3 rounded-lg border border-ink-200 dark:border-ink-700 bg-ink-50 dark:bg-ink-800 text-xs text-ink-900 dark:text-ink-100 placeholder:text-ink-400 dark:placeholder:text-ink-500 focus:outline-none focus:border-amber-400 dark:focus:border-amber-500 transition-all"
           />
           <div className="flex items-center gap-2 justify-end">
-            <button onClick={handleCancel} className="min-h-[44px] min-w-[44px] rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 text-ink-400 transition-colors flex items-center justify-center">
-              <X size={18} />
+            <button onClick={handleCancel} className="p-1.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 text-ink-400 transition-colors">
+              <X size={16} />
             </button>
-            <button onClick={handleSave} className="min-h-[44px] min-w-[44px] rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 transition-colors flex items-center justify-center">
-              <Check size={18} />
+            <button onClick={handleSave} className="p-1.5 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 text-green-600 dark:text-green-400 transition-colors">
+              <Check size={16} />
             </button>
           </div>
         </div>
       ) : (
         <>
-          <p className="text-[15px] text-ink-800 dark:text-ink-200 leading-relaxed whitespace-pre-wrap">
+          <p className="text-sm text-ink-800 dark:text-ink-200 leading-relaxed whitespace-pre-wrap">
             {fragment.content}
           </p>
 
           {fragment.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-4">
+            <div className="flex flex-wrap gap-1.5 mt-3">
               {fragment.tags.map((tag, i) => (
                 <span
                   key={i}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-ink-100 dark:bg-ink-800 text-ink-500 dark:text-ink-400 text-xs"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-xs font-medium"
                 >
                   <Tag size={10} />
                   {tag}
@@ -94,27 +94,25 @@ const FragmentCard = memo(function FragmentCard({ fragment, index }: FragmentCar
             </div>
           )}
 
-          <div className="flex items-center justify-between mt-4 pt-3 border-t border-ink-100 dark:border-ink-800">
+          <div className="flex items-center justify-between mt-3 pt-2">
             <div className="flex items-center gap-3 text-xs text-ink-400 dark:text-ink-500">
-              <span className="tabular-nums">{formattedDate}</span>
+              <span>{formattedDate}</span>
               {fragment.note && (
-                <span className="text-ink-400 dark:text-ink-500 truncate max-w-[120px]">{fragment.note}</span>
+                <span className="text-ink-500 dark:text-ink-400 truncate max-w-[120px]">{fragment.note}</span>
               )}
             </div>
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <div className="flex items-center gap-0.5">
               <button
                 onClick={() => setEditing(true)}
-                className="min-h-[36px] min-w-[36px] rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 text-ink-300 dark:text-ink-600 hover:text-ink-500 dark:hover:text-ink-300 transition-colors flex items-center justify-center"
-                aria-label="编辑素材"
+                className="p-1.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 text-ink-300 dark:text-ink-600 hover:text-ink-600 dark:hover:text-ink-300 transition-colors"
               >
-                <Edit3 size={15} />
+                <Edit3 size={14} />
               </button>
               <button
                 onClick={() => setDeleteConfirm(true)}
-                className="min-h-[36px] min-w-[36px] rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-ink-300 dark:text-ink-600 hover:text-red-500 dark:hover:text-red-400 transition-colors flex items-center justify-center"
-                aria-label="删除素材"
+                className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-ink-300 dark:text-ink-600 hover:text-red-500 dark:hover:text-red-400 transition-colors"
               >
-                <Trash2 size={15} />
+                <Trash2 size={14} />
               </button>
             </div>
           </div>
@@ -129,23 +127,23 @@ const FragmentCard = memo(function FragmentCard({ fragment, index }: FragmentCar
                 <AlertTriangle size={20} className="text-red-500 dark:text-red-400" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-ink-900 dark:text-ink-100">确认删除</h3>
+                <h3 className="text-sm font-bold text-ink-900 dark:text-ink-100">确认删除</h3>
                 <p className="text-xs text-ink-500 dark:text-ink-400 mt-0.5">删除后不可恢复</p>
               </div>
             </div>
-            <p className="text-sm text-ink-600 dark:text-ink-300 mb-6 line-clamp-2 pl-3 rounded-l ring-1 ring-inset ring-ink-900/[0.04] dark:ring-ink-100/[0.04]">
+            <p className="text-sm text-ink-600 dark:text-ink-300 mb-6 line-clamp-2 border-l-2 border-ink-200 dark:border-ink-700 pl-3">
               {fragment.content.slice(0, 80)}{fragment.content.length > 80 ? '...' : ''}
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteConfirm(false)}
-                className="flex-1 h-11 rounded-xl ring-1 ring-ink-900/[0.06] dark:ring-ink-100/[0.06] text-sm font-medium text-ink-600 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800 transition-colors focus:outline-none focus:ring-2 focus:ring-ink-400"
+                className="flex-1 h-10 rounded-xl border border-ink-200 dark:border-ink-700 text-sm font-medium text-ink-600 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800 transition-colors"
               >
                 取消
               </button>
               <button
                 onClick={handleDelete}
-                className="flex-1 h-11 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition-colors focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-ink-900"
+                className="flex-1 h-10 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors"
               >
                 确认删除
               </button>

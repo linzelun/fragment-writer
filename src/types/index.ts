@@ -30,7 +30,7 @@ export interface ArticleOutput {
   generatedAt: string;
   fragmentCount: number;
   styleScore?: number; // 莫迪亚诺风格评分 (0-100)
-  styleBreakdown?: Record<string, { score: number; max: number; label: string; feedback: string }>; // 评分明细
+  styleBreakdown?: Record<string, { score: number; feedback: string }>; // 评分明细
   styleHighlights?: string[];
   styleImprovements?: string[];
 }
