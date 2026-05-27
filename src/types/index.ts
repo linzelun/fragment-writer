@@ -9,6 +9,13 @@ export interface Fragment {
   updatedAt: string;
 }
 
+export interface SearchResult extends Fragment {
+  highlightContent?: string;
+  highlightSource?: string;
+  highlightNote?: string;
+  highlightTags?: string;
+}
+
 export interface WritingProject {
   id: string;
   title: string;

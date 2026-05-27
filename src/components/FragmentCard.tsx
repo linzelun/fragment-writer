@@ -2,20 +2,44 @@ import { useState, memo } from 'react';
 import { useWriting } from '../stores/writing-store';
 import { useToast } from '../contexts/ToastContext';
 import { Trash2, Edit3, Check, X, Tag, AlertTriangle } from 'lucide-react';
-import type { Fragment } from '../types';
+import type { Fragment, SearchResult } from '../types';
 
 interface FragmentCardProps {
   fragment: Fragment;
   index: number;
+  searchQuery?: string;
 }
 
-const FragmentCard = memo(function FragmentCard({ fragment, index }: FragmentCardProps) {
+// 本地高亮：对纯文本做正则高亮（后端未返回 highlight 字段时回退使用）
+function highlightText(text: string, query: string): string {
+  if (!query.trim()) return text;
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  try {
+    const regex = new RegExp(`(${escaped})`, 'gi');
+    return text.replace(regex, '<mark class="bg-amber-200 dark:bg-amber-700/60 rounded px-0.5">$1</mark>');
+  } catch {
+    return text;
+  }
+}
+
+const FragmentCard = memo(function FragmentCard({ fragment, index, searchQuery }: FragmentCardProps) {
   const { FragmentActions } = useWriting();
   const toast = useToast();
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState(fragment.content);
   const [editNote, setEditNote] = useState(fragment.note || '');
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+
+  // 判断是否有后端返回的高亮字段（SearchResult 类型）
+  const hasHighlight = searchQuery && (fragment as SearchResult).highlightContent !== undefined;
+  const highlightedContent = hasHighlight
+    ? (fragment as SearchResult).highlightContent
+    : searchQuery
+      ? highlightText(fragment.content, searchQuery)
+      : null;
+  const highlightedNote = searchQuery && fragment.note
+    ? (hasHighlight ? (fragment as SearchResult).highlightNote : highlightText(fragment.note, searchQuery))
+    : null;
 
   const handleSave = () => {
     if (!editContent.trim()) return;
@@ -76,9 +100,16 @@ const FragmentCard = memo(function FragmentCard({ fragment, index }: FragmentCar
         </div>
       ) : (
         <>
-          <p className="text-sm text-ink-800 dark:text-ink-200 leading-relaxed whitespace-pre-wrap">
-            {fragment.content}
-          </p>
+          {highlightedContent ? (
+            <p
+              className="text-sm text-ink-800 dark:text-ink-200 leading-relaxed whitespace-pre-wrap"
+              dangerouslySetInnerHTML={{ __html: highlightedContent }}
+            />
+          ) : (
+            <p className="text-sm text-ink-800 dark:text-ink-200 leading-relaxed whitespace-pre-wrap">
+              {fragment.content}
+            </p>
+          )}
 
           {fragment.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-3">
@@ -97,8 +128,14 @@ const FragmentCard = memo(function FragmentCard({ fragment, index }: FragmentCar
           <div className="flex items-center justify-between mt-3 pt-2">
             <div className="flex items-center gap-3 text-xs text-ink-400 dark:text-ink-500">
               <span>{formattedDate}</span>
-              {fragment.note && (
+              {fragment.note && !highlightedNote && (
                 <span className="text-ink-500 dark:text-ink-400 truncate max-w-[120px]">{fragment.note}</span>
+              )}
+              {highlightedNote && (
+                <span
+                  className="text-ink-500 dark:text-ink-400 truncate max-w-[120px]"
+                  dangerouslySetInnerHTML={{ __html: highlightedNote }}
+                />
               )}
             </div>
             <div className="flex items-center gap-0.5">

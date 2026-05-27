@@ -1,17 +1,22 @@
-import { Search, X } from 'lucide-react';
+import { Search, X, Loader2 } from 'lucide-react';
 
 interface SearchBarProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   resultCount?: number;
+  loading?: boolean;
 }
 
-export default function SearchBar({ value, onChange, placeholder = '搜索素材...', resultCount }: SearchBarProps) {
+export default function SearchBar({ value, onChange, placeholder = '搜索素材...', resultCount, loading }: SearchBarProps) {
   return (
     <div className="relative">
       <div className="flex items-center gap-2 px-3 h-10 bg-white dark:bg-ink-800 rounded-xl border border-ink-200 dark:border-ink-700 shadow-sm transition-all focus-within:border-amber-400 dark:focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-100 dark:focus-within:ring-amber-900/20">
-        <Search size={15} className="text-ink-400 dark:text-ink-500 shrink-0" />
+        {loading ? (
+          <Loader2 size={15} className="text-amber-500 shrink-0 animate-spin" />
+        ) : (
+          <Search size={15} className="text-ink-400 dark:text-ink-500 shrink-0" />
+        )}
         <input
           type="text"
           data-search-bar

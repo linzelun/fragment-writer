@@ -4,9 +4,10 @@ import type { Fragment } from '../types';
 
 interface FragmentListProps {
   fragments: Fragment[];
+  searchQuery?: string;
 }
 
-export default function FragmentList({ fragments }: FragmentListProps) {
+export default function FragmentList({ fragments, searchQuery }: FragmentListProps) {
   const { activeProject } = useWriting();
 
   if (!activeProject) return null;
@@ -14,10 +15,15 @@ export default function FragmentList({ fragments }: FragmentListProps) {
   if (fragments.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 px-6 text-center animate-fade-in">
-        <span className="text-4xl mb-4">📝</span>
-        <h3 className="text-base font-bold text-ink-800 dark:text-ink-200 mb-1.5">暂未记录任何素材</h3>
+        <span className="text-4xl mb-4">{searchQuery ? '🔍' : '📝'}</span>
+        <h3 className="text-base font-bold text-ink-800 dark:text-ink-200 mb-1.5">
+          {searchQuery ? '未找到匹配的素材' : '暂未记录任何素材'}
+        </h3>
         <p className="text-sm text-ink-500 dark:text-ink-400 max-w-xs leading-relaxed">
-          在上方输入框中记录你的想法、灵感或素材片段。所有内容都将保存在「{activeProject.title}」项目中。
+          {searchQuery
+            ? `在「${activeProject.title}」中没有找到包含"${searchQuery}"的素材，试试其他关键词。`
+            : `在上方输入框中记录你的想法、灵感或素材片段。所有内容都将保存在「${activeProject.title}」项目中。`
+          }
         </p>
       </div>
     );
@@ -28,13 +34,13 @@ export default function FragmentList({ fragments }: FragmentListProps) {
       <div className="flex items-center justify-between pb-2">
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-ink-400 dark:text-ink-500 uppercase tracking-wider">
-            全部素材
+            {searchQuery ? '搜索结果' : '全部素材'}
           </span>
           <span className="text-[10px] font-bold bg-ink-900/90 dark:bg-ink-100/90 text-white dark:text-ink-900 px-1.5 py-0.5 rounded-full">
             {fragments.length}
           </span>
         </div>
-        {fragments.length > 0 && (
+        {!searchQuery && fragments.length > 0 && (
           <span className="text-[10px] text-ink-400 dark:text-ink-500">
             按时间倒序排列
           </span>
@@ -42,7 +48,7 @@ export default function FragmentList({ fragments }: FragmentListProps) {
       </div>
       <div className="space-y-3">
         {fragments.map((fragment, i) => (
-          <FragmentCard key={fragment.id} fragment={fragment} index={i} />
+          <FragmentCard key={fragment.id} fragment={fragment} index={i} searchQuery={searchQuery} />
         ))}
       </div>
     </div>

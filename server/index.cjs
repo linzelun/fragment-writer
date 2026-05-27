@@ -21,7 +21,7 @@ const db = new Database(dbPath);
 db.pragma('journal_mode = WAL');
 
 const PROJECT_FIELDS = ['title', 'topic', 'description', 'targetAudience', 'targetLength', 'tone'];
-const FRAGMENT_FIELDS = ['content', 'note', 'tags'];
+const FRAGMENT_FIELDS = ['content', 'source', 'note', 'tags'];
 
 function jsonError(res, status, message) {
   res.status(status).json({ error: message });
@@ -100,6 +100,7 @@ db.exec(`
     id TEXT PRIMARY KEY,
     projectId TEXT NOT NULL,
     content TEXT NOT NULL,
+    source TEXT DEFAULT '',
     note TEXT DEFAULT '',
     tags TEXT DEFAULT '[]',
     createdAt TEXT NOT NULL,
@@ -119,6 +120,97 @@ db.exec(`
     styleImprovements TEXT DEFAULT '[]'
   );
 `);
+
+// 迁移：为 fragments 表添加 source 列（如果不存在）
+const fragColumns = db.prepare("PRAGMA table_info(fragments)").all().map(c => c.name);
+if (!fragColumns.includes('source')) {
+  db.exec("ALTER TABLE fragments ADD COLUMN source TEXT DEFAULT ''");
+  console.log('[Migration] Added source column to fragments table');
+}
+
+// ========== FTS5 全文搜索支持 ==========
+// 创建 FTS5 虚拟表（如果不存在）
+// 注意：FTS5 表每次启动时需要检查 schema，如果表结构不匹配需要重建
+const FTS_COLUMNS = ['id', 'projectId', 'content', 'source', 'note', 'tags', 'createdAt', 'updatedAt'];
+
+function ensureFtsTable() {
+  const ftsExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='fragments_fts'").get();
+  
+  if (ftsExists) {
+    // 检查列是否匹配
+    try {
+      db.prepare('SELECT id, projectId, content, source, note, tags, createdAt, updatedAt FROM fragments_fts LIMIT 0').get();
+      return true; // 结构匹配
+    } catch (e) {
+      // 结构不匹配，删除重建
+      console.log('[FTS] Rebuilding FTS table (schema mismatch)...');
+      db.exec('DROP TABLE IF EXISTS fragments_fts');
+    }
+  }
+  
+  db.exec(`
+    CREATE VIRTUAL TABLE fragments_fts USING fts5(
+      id UNINDEXED,
+      projectId UNINDEXED,
+      content,
+      source,
+      note,
+      tags,
+      createdAt UNINDEXED,
+      updatedAt UNINDEXED
+    );
+  `);
+  return false; // 返回 false 表示需要重建索引
+}
+
+const ftsOk = ensureFtsTable();
+
+// 检查 FTS 索引是否需要重建
+const ftsCountRow = db.prepare('SELECT COUNT(*) as cnt FROM fragments_fts').get();
+const fragCountRow = db.prepare('SELECT COUNT(*) as cnt FROM fragments').get();
+
+if (ftsCountRow.cnt === 0 && fragCountRow.cnt > 0) {
+  console.log('[FTS] Rebuilding FTS index...');
+  const allFragments = db.prepare('SELECT * FROM fragments').all();
+  const insertFts = db.prepare('INSERT INTO fragments_fts (id, projectId, content, source, note, tags, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+  const ftsTx = db.transaction((rows) => {
+    for (const row of rows) {
+      try { 
+        insertFts.run(row.id, row.projectId, row.content, row.source || '', row.note || '', row.tags || '[]', row.createdAt, row.updatedAt); 
+      } catch (e) { 
+        // skip duplicates 
+      }
+    }
+  });
+  ftsTx(allFragments);
+  console.log(`[FTS] Index rebuilt with ${allFragments.length} fragments`);
+}
+
+// 删除旧触发器（如果存在），然后重建
+db.exec(`DROP TRIGGER IF EXISTS fragments_ai`);
+db.exec(`DROP TRIGGER IF EXISTS fragments_au`);
+db.exec(`DROP TRIGGER IF EXISTS fragments_ad`);
+
+// FTS 同步触发器：当 fragments 表变更时自动更新 FTS 索引
+db.exec(`
+  CREATE TRIGGER IF NOT EXISTS fragments_ai AFTER INSERT ON fragments BEGIN
+    INSERT INTO fragments_fts (id, projectId, content, source, note, tags, createdAt, updatedAt)
+    VALUES (new.id, new.projectId, new.content, new.source, new.note, new.tags, new.createdAt, new.updatedAt);
+  END;
+`);
+db.exec(`
+  CREATE TRIGGER IF NOT EXISTS fragments_au AFTER UPDATE ON fragments BEGIN
+    DELETE FROM fragments_fts WHERE id = old.id;
+    INSERT INTO fragments_fts (id, projectId, content, source, note, tags, createdAt, updatedAt)
+    VALUES (new.id, new.projectId, new.content, new.source, new.note, new.tags, new.createdAt, new.updatedAt);
+  END;
+`);
+db.exec(`
+  CREATE TRIGGER IF NOT EXISTS fragments_ad AFTER DELETE ON fragments BEGIN
+    DELETE FROM fragments_fts WHERE id = old.id;
+  END;
+`);
+console.log('[FTS] FTS5 search ready');
 
 // 检查并补充 articles 表缺失的列
 const articleColumns = db.prepare("PRAGMA table_info(articles)").all();
@@ -194,10 +286,10 @@ app.get('/api/projects/:id/fragments', wrapRoute((req, res) => {
 }));
 
 app.post('/api/fragments', wrapRoute((req, res) => {
-  const { id, projectId, content, note, tags, createdAt, updatedAt } = req.body;
+  const { id, projectId, content, source, note, tags, createdAt, updatedAt } = req.body;
   db.prepare(
-    'INSERT INTO fragments (id, projectId, content, note, tags, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)'
-  ).run(id, projectId, content, note, JSON.stringify(tags), createdAt, updatedAt);
+    'INSERT INTO fragments (id, projectId, content, source, note, tags, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(id, projectId, content, source || '', note || '', JSON.stringify(tags), createdAt, updatedAt);
   const fragment = db.prepare('SELECT * FROM fragments WHERE id = ?').get(id);
   fragment.tags = JSON.parse(fragment.tags);
   res.json(fragment);
@@ -229,6 +321,127 @@ app.delete('/api/fragments/:id', wrapRoute((req, res) => {
   db.prepare('DELETE FROM fragments WHERE id = ?').run(req.params.id);
   res.json({ ok: true });
 }));
+
+// ========== 全文搜索 API ==========
+// GET /api/fragments/search?q=关键词&projectId=可选&limit=50
+app.get('/api/fragments/search', wrapRoute((req, res) => {
+  const { q, projectId, limit } = req.query;
+  
+  if (!q || !q.trim()) {
+    return jsonError(res, 400, '请提供搜索关键词');
+  }
+  
+  const searchQuery = q.trim();
+  const resultLimit = parseInt(limit) || 50;
+  
+  // 检查 FTS 表是否存在
+  const ftsTableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='fragments_fts'").get();
+  if (!ftsTableExists) {
+    return fallbackSearch(res, searchQuery, projectId, resultLimit);
+  }
+  
+  try {
+    let sql, params;
+    
+    if (projectId) {
+      sql = `
+        SELECT f.*, 
+               snippet(fragments_fts, 2, '<mark>', '</mark>', '...', 40) as highlightContent,
+               snippet(fragments_fts, 3, '<mark>', '</mark>', '...', 40) as highlightSource,
+               snippet(fragments_fts, 4, '<mark>', '</mark>', '...', 40) as highlightNote,
+               snippet(fragments_fts, 5, '<mark>', '</mark>', '...', 40) as highlightTags,
+               bm25(fragments_fts) as rank
+        FROM fragments_fts
+        JOIN fragments f ON f.id = fragments_fts.id
+        WHERE fragments_fts MATCH ? AND f.projectId = ?
+        ORDER BY rank
+        LIMIT ?
+      `;
+      params = [escapeFtsQuery(searchQuery), projectId, resultLimit];
+    } else {
+      sql = `
+        SELECT f.*, 
+               snippet(fragments_fts, 2, '<mark>', '</mark>', '...', 40) as highlightContent,
+               snippet(fragments_fts, 3, '<mark>', '</mark>', '...', 40) as highlightSource,
+               snippet(fragments_fts, 4, '<mark>', '</mark>', '...', 40) as highlightNote,
+               snippet(fragments_fts, 5, '<mark>', '</mark>', '...', 40) as highlightTags,
+               bm25(fragments_fts) as rank
+        FROM fragments_fts
+        JOIN fragments f ON f.id = fragments_fts.id
+        WHERE fragments_fts MATCH ?
+        ORDER BY rank
+        LIMIT ?
+      `;
+      params = [escapeFtsQuery(searchQuery), resultLimit];
+    }
+    
+    const rows = db.prepare(sql).all(...params);
+    
+    // 解析 tags JSON
+    rows.forEach(row => {
+      try { row.tags = JSON.parse(row.tags || '[]'); } catch { row.tags = []; }
+      // 清理 FTS 内部字段
+      delete row.rank;
+    });
+    
+    res.json({
+      query: searchQuery,
+      total: rows.length,
+      results: rows,
+    });
+  } catch (err) {
+    console.warn('[FTS] FTS query failed, falling back to LIKE:', err.message);
+    return fallbackSearch(res, searchQuery, projectId, resultLimit);
+  }
+}));
+
+// 转义 FTS5 查询中的特殊字符，防止语法错误
+function escapeFtsQuery(query) {
+  return query
+    .replace(/['"]/g, '')
+    .replace(/[^\p{L}\p{N}\s]/gu, '')
+    .split(/\s+/)
+    .filter(t => t.length > 0)
+    .map(t => `"${t}"`)
+    .join(' OR ');
+}
+
+// LIKE 回退搜索
+function fallbackSearch(res, query, projectId, limit) {
+  const likePattern = `%${query}%`;
+  let sql, params;
+  
+  if (projectId) {
+    sql = `
+      SELECT * FROM fragments
+      WHERE projectId = ?
+        AND (content LIKE ? OR source LIKE ? OR note LIKE ? OR tags LIKE ?)
+      ORDER BY updatedAt DESC
+      LIMIT ?
+    `;
+    params = [projectId, likePattern, likePattern, likePattern, likePattern, limit];
+  } else {
+    sql = `
+      SELECT * FROM fragments
+      WHERE content LIKE ? OR source LIKE ? OR note LIKE ? OR tags LIKE ?
+      ORDER BY updatedAt DESC
+      LIMIT ?
+    `;
+    params = [likePattern, likePattern, likePattern, likePattern, limit];
+  }
+  
+  const rows = db.prepare(sql).all(...params);
+  rows.forEach(row => {
+    try { row.tags = JSON.parse(row.tags || '[]'); } catch { row.tags = []; }
+  });
+  
+  res.json({
+    query,
+    total: rows.length,
+    results: rows,
+    fallback: true,
+  });
+}
 
 app.get('/api/articles/:projectId', wrapRoute((req, res) => {
   const articleRow = db.prepare('SELECT * FROM articles WHERE projectId = ?').get(req.params.projectId);

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useWriting } from '../stores/writing-store';
 import { useTheme } from '../contexts/ThemeContext';
 import ProjectList from '../components/ProjectList';
@@ -8,7 +8,9 @@ import AIIntegration from '../components/AIIntegration';
 import ArticlePreview from '../components/ArticlePreview';
 import EmptyState from '../components/EmptyState';
 import SearchBar from '../components/SearchBar';
+import { fragmentsApi, type SearchResult } from '../services/api';
 import { Menu, Sparkles, BookOpen, ChevronRight, Moon, Sun, Search, Layers } from 'lucide-react';
+import type { Fragment } from '../types';
 
 export default function WritingStudio() {
   const { state, activeProject, sortedFragments } = useWriting();
@@ -16,19 +18,51 @@ export default function WritingStudio() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showArticle, setShowArticle] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResult[] | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const hasArticle = activeProject && state.articles[activeProject.id];
 
-  const filteredFragments = useMemo(() => {
-    if (!searchQuery.trim()) return sortedFragments;
-    const q = searchQuery.toLowerCase();
-    return sortedFragments.filter(
-      f =>
-        f.content.toLowerCase().includes(q) ||
-        f.source?.toLowerCase().includes(q) ||
-        f.tags?.some((t: string) => t.toLowerCase().includes(q))
-    );
-  }, [sortedFragments, searchQuery]);
+  // 调用后端全文搜索 API
+  const doSearch = useCallback(async (q: string) => {
+    if (!q.trim() || !activeProject) {
+      setSearchResults(null);
+      setSearchLoading(false);
+      return;
+    }
+    setSearchLoading(true);
+    try {
+      const res = await fragmentsApi.search(q, activeProject.id, 100);
+      setSearchResults(res.results);
+    } catch (err) {
+      console.warn('[Search] API failed, falling back to local filter', err);
+      setSearchResults(null);
+    } finally {
+      setSearchLoading(false);
+    }
+  }, [activeProject]);
+
+  // 防抖：300ms 后触发搜索
+  useEffect(() => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    if (!searchQuery.trim()) {
+      setSearchResults(null);
+      setSearchLoading(false);
+      return;
+    }
+    setSearchLoading(true);
+    searchTimer.current = setTimeout(() => {
+      doSearch(searchQuery);
+    }, 300);
+    return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
+  }, [searchQuery, doSearch]);
+
+  // 搜索结果优先，无搜索时展示全部
+  const displayedFragments: Fragment[] = useMemo(() => {
+    if (searchResults !== null) return searchResults as unknown as Fragment[];
+    return sortedFragments;
+  }, [searchResults, sortedFragments]);
 
   // Global keyboard shortcut: Ctrl+K to toggle search
   useMemo(() => {
@@ -203,7 +237,8 @@ export default function WritingStudio() {
             <SearchBar
               value={searchQuery}
               onChange={setSearchQuery}
-              resultCount={searchQuery ? filteredFragments.length : undefined}
+              resultCount={searchQuery ? displayedFragments.length : undefined}
+              loading={searchLoading}
             />
           </div>
         )}
@@ -212,7 +247,7 @@ export default function WritingStudio() {
           <div className="px-4 py-3">
             <h2 className="text-xs font-semibold text-ink-400 dark:text-ink-500 uppercase tracking-wide">素材列表</h2>
           </div>
-          <FragmentList fragments={filteredFragments} />
+          <FragmentList fragments={displayedFragments} searchQuery={searchQuery} />
         </div>
       </main>
 
