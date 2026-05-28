@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useWriting } from '../stores/writing-store';
-import { Clock, FileText, ArrowLeft, TrendingUp, Award, History, Loader2, Send, AlertCircle, X, PenLine } from 'lucide-react';
+import { Clock, ArrowLeft, TrendingUp, Award, History, Loader2, Send, AlertCircle, X, PenLine, GitCompare, ListChecks } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import ExportPanel from './ExportPanel';
 import TableOfContents from './TableOfContents';
@@ -37,10 +37,32 @@ export default function ArticlePreview({ onClose }: ArticlePreviewProps) {
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
   const [feedbackThinking, setFeedbackThinking] = useState('');
   const [feedbackScore, setFeedbackScore] = useState<number | null>(null);
+  const [feedbackChanges, setFeedbackChanges] = useState<string | null>(null);
+  const [showDiff, setShowDiff] = useState(false);
+
+  const currentArticle = activeProject ? state.articles[activeProject.id] : undefined;
+
+  // 简单的行级别 diff
+  const versionDiff = useMemo(() => {
+    if (!showDiff || !viewingVersion || !versionContent || !currentArticle) return null;
+    const oldLines = versionContent.content.split('\n');
+    const newLines = currentArticle.content.split('\n');
+    const result: { type: 'same' | 'added' | 'removed'; text: string }[] = [];
+    const maxLen = Math.max(oldLines.length, newLines.length);
+    for (let i = 0; i < maxLen; i++) {
+      const oldLine = oldLines[i];
+      const newLine = newLines[i];
+      if (oldLine === newLine) {
+        if (oldLine !== undefined) result.push({ type: 'same', text: oldLine });
+      } else {
+        if (oldLine !== undefined) result.push({ type: 'removed', text: oldLine });
+        if (newLine !== undefined) result.push({ type: 'added', text: newLine });
+      }
+    }
+    return result;
+  }, [showDiff, viewingVersion, versionContent, currentArticle]);
 
   if (!activeProject) return null;
-
-  const currentArticle = state.articles[activeProject.id];
   if (!currentArticle && !viewingVersion) return null;
 
   const article = versionContent || currentArticle;
@@ -82,7 +104,7 @@ export default function ArticlePreview({ onClose }: ArticlePreviewProps) {
 
   const handleSubmitFeedback = async () => {
     const trimmed = feedbackText.trim();
-    if (!trimmed || feedbackLoading) return;
+    if (!trimmed || feedbackLoading || !article || !activeProject) return;
 
     setFeedbackLoading(true);
     setFeedbackError(null);
@@ -113,6 +135,7 @@ export default function ArticlePreview({ onClose }: ArticlePreviewProps) {
         setFeedbackText('');
         setFeedbackThinking('');
         setFeedbackScore(null);
+        setFeedbackChanges(result.changes || null);
       }
     } catch {
       setFeedbackError('修改请求失败，请重试');
@@ -201,9 +224,22 @@ export default function ArticlePreview({ onClose }: ArticlePreviewProps) {
                   })}
                 </span>
                 {viewingVersion && (
-                  <span className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-medium">
-                    历史版本 v{viewingVersion.version}
-                  </span>
+                  <>
+                    <span className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-medium">
+                      历史版本 v{viewingVersion.version}
+                    </span>
+                    <button
+                      onClick={() => setShowDiff(!showDiff)}
+                      className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-colors ${
+                        showDiff
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                          : 'text-ink-400 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-800'
+                      }`}
+                    >
+                      <GitCompare size={12} />
+                      {showDiff ? '差异模式' : '对比当前'}
+                    </button>
+                  </>
                 )}
               </div>
             </>
@@ -213,6 +249,31 @@ export default function ArticlePreview({ onClose }: ArticlePreviewProps) {
 
       <div className="flex-1 overflow-y-auto pb-20 sm:pb-0">
         <div className="max-w-3xl mx-auto px-3 sm:px-5 py-4 sm:py-8">
+          {showDiff && versionDiff ? (
+            <div className="rounded-xl border border-ink-200 dark:border-ink-700 overflow-hidden font-mono text-xs">
+              <div className="px-4 py-2 bg-ink-50 dark:bg-ink-800 border-b border-ink-200 dark:border-ink-700 flex items-center gap-3">
+                <span className="flex items-center gap-1 text-red-600 dark:text-red-400"><span className="w-3 h-3 rounded bg-red-200 dark:bg-red-900/30" /> 旧版 v{viewingVersion?.version}</span>
+                <span className="flex items-center gap-1 text-green-600 dark:text-green-400"><span className="w-3 h-3 rounded bg-green-200 dark:bg-green-900/30" /> 当前版本</span>
+              </div>
+              <div className="p-4 max-h-[50vh] overflow-y-auto space-y-0 leading-relaxed">
+                {versionDiff.map((line, i) => (
+                  <div
+                    key={i}
+                    className={`${
+                      line.type === 'added'
+                        ? 'bg-green-50 dark:bg-green-900/10 text-green-800 dark:text-green-300'
+                        : line.type === 'removed'
+                          ? 'bg-red-50 dark:bg-red-900/10 text-red-800 dark:text-red-300 line-through'
+                          : 'text-ink-600 dark:text-ink-400'
+                    } px-2 py-0.5 rounded`}
+                  >
+                    {line.type === 'added' ? '+ ' : line.type === 'removed' ? '- ' : '  '}
+                    {line.text || ' '}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
           <article className="prose prose-sm prose-stone dark:prose-invert prose-headings:font-bold prose-headings:text-ink-900 dark:prose-headings:text-ink-100 prose-p:text-ink-800 dark:prose-p:text-ink-200 prose-p:leading-relaxed prose-blockquote:border-l-amber-400 prose-blockquote:bg-amber-50 dark:prose-blockquote:bg-amber-900/10 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:rounded-r-lg prose-blockquote:not-italic prose-a:text-amber-600 dark:prose-a:text-amber-400 max-w-none font-serif">
             <ReactMarkdown
               components={{
@@ -233,6 +294,7 @@ export default function ArticlePreview({ onClose }: ArticlePreviewProps) {
               {article.content}
             </ReactMarkdown>
           </article>
+          )}
 
           {article.summary && (
             <div className="mt-8 sm:mt-10 p-4 sm:p-5 bg-white dark:bg-ink-900 rounded-2xl border border-ink-200 dark:border-ink-800 shadow-sm">
@@ -403,8 +465,25 @@ export default function ArticlePreview({ onClose }: ArticlePreviewProps) {
             </button>
           </div>
         )}
+        {feedbackChanges && (
+          <div className="mt-2 p-3 rounded-xl bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-900/30 animate-fade-in max-h-32 overflow-y-auto">
+            <div className="flex items-center gap-1.5 mb-2">
+              <ListChecks size={12} className="text-green-600 dark:text-green-400" />
+              <span className="text-[10px] font-bold text-green-700 dark:text-green-400">AI 修改说明</span>
+              <button
+                onClick={() => setFeedbackChanges(null)}
+                className="ml-auto p-0.5 text-green-500 hover:text-green-700"
+              >
+                <X size={12} />
+              </button>
+            </div>
+            <p className="text-[10px] text-ink-600 dark:text-ink-300 whitespace-pre-wrap leading-relaxed">
+              {feedbackChanges}
+            </p>
+          </div>
+        )}
         {!feedbackLoading && (
-          <p className="text-xs text-ink-400 dark:text-ink-500 text-center mt-2">
+          <p className="text-xs text-ink-400 dark:text-ink-300 text-center mt-2">
             输入修改建议后按 Enter 发送，AI 将针对性地修改文章
           </p>
         )}

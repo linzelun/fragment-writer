@@ -4,18 +4,21 @@ import {
   generateOutline, generateSections,
   polishText, grammarCheck,
   getWritingSuggestions,
-  STYLE_PRESETS,
+  analyzeFragments,
+  STYLE_PRESETS, LITERARY_SUB_STYLES,
   type OutlineResult,
   type WritingSuggestions,
+  type FragmentAnalysis,
 } from '../services/ai-enhanced';
 import {
   Sparkles, Wand2, Lightbulb, ListChecks,
   RefreshCw, Loader2,
   Check, AlertCircle, Copy, Play, ArrowRight,
   BookOpen, PenTool, Zap, CornerDownRight, X,
+  PieChart, GitBranch, Target, ChevronDown,
 } from 'lucide-react';
 
-type TabKey = 'generate' | 'polish' | 'guide';
+type TabKey = 'generate' | 'polish' | 'guide' | 'analyze';
 
 interface WritingAssistantProps {
   isOpen: boolean;
@@ -54,6 +57,15 @@ export default function WritingAssistant({ isOpen, onToggle }: WritingAssistantP
   const [guideLoading, setGuideLoading] = useState(false);
   const [guideError, setGuideError] = useState<string | null>(null);
   const guideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ---- 素材分析 ----
+  const [fragmentAnalysis, setFragmentAnalysis] = useState<FragmentAnalysis | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+
+  // ---- 文学子风格 ----
+  const [literarySubStyle, setLiterarySubStyle] = useState<string | null>(null);
+  const [showStyleSelect, setShowStyleSelect] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -115,6 +127,8 @@ export default function WritingAssistant({ isOpen, onToggle }: WritingAssistantP
       activeProject.topic,
       filteredOutline,
       sortedFragments,
+      activeProject.tone,
+      activeProject.tone === 'storytelling' ? literarySubStyle : null,
       {
         onSectionStart: (sectionId) => {
           setCurrentSectionId(sectionId);
@@ -198,9 +212,15 @@ export default function WritingAssistant({ isOpen, onToggle }: WritingAssistantP
     setGuideLoading(true);
     setGuideError(null);
 
+    // 构建文章结构摘要（如有大纲）
+    const structureSummary = outline
+      ? outline.sections.map(s => `- ${s.title}`).join('\n')
+      : undefined;
+
     const result = await getWritingSuggestions(
       activeProject.topic,
       text,
+      structureSummary,
       { onError: (msg) => setGuideError(msg) }
     );
 
@@ -221,10 +241,31 @@ export default function WritingAssistant({ isOpen, onToggle }: WritingAssistantP
     setGuideInput(prev => prev + (prev && !prev.endsWith('，') ? '，' : '') + keyword);
   };
 
+  /* ================================================================
+     素材分析
+     ================================================================ */
+
+  const handleAnalyzeFragments = async () => {
+    if (sortedFragments.length === 0) return;
+    setAnalysisLoading(true);
+    setAnalysisError(null);
+    setFragmentAnalysis(null);
+
+    const result = await analyzeFragments(
+      activeProject.topic,
+      sortedFragments,
+      { onError: (msg) => setAnalysisError(msg) }
+    );
+
+    if (result) setFragmentAnalysis(result);
+    setAnalysisLoading(false);
+  };
+
   const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
     { key: 'generate', label: '一键生成', icon: <Wand2 size={14} /> },
     { key: 'polish', label: '智能优化', icon: <PenTool size={14} /> },
     { key: 'guide', label: '写作引导', icon: <Lightbulb size={14} /> },
+    { key: 'analyze', label: '素材分析', icon: <PieChart size={14} /> },
   ];
 
   if (!isOpen) return null;
@@ -276,8 +317,40 @@ export default function WritingAssistant({ isOpen, onToggle }: WritingAssistantP
                     </span>
                   </div>
                   <p className="text-xs text-ink-400 dark:text-ink-300">
-                    基于主题「{activeProject.topic}」{sortedFragments.length > 0 ? `和 ${sortedFragments.length} 条素材` : ''}生成结构化大纲
+                    基于主题「{activeProject.topic}」{sortedFragments.length > 0 ? `和 ${sortedFragments.length} 条素材` : ''}生成结构化大纲。当前风格：{STYLE_PRESETS[activeProject.tone]?.name || '口语随笔'}
                   </p>
+                  {activeProject.tone === 'storytelling' && (
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowStyleSelect(!showStyleSelect)}
+                        className="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-ink-200 dark:border-ink-700 text-xs text-ink-600 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800 transition-colors"
+                      >
+                        <span>{literarySubStyle ? LITERARY_SUB_STYLES.find(s => s.key === literarySubStyle)?.name : '选择文学子风格（可选）'}</span>
+                        <ChevronDown size={12} />
+                      </button>
+                      {showStyleSelect && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setShowStyleSelect(false)} />
+                          <div className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-ink-900 rounded-xl border border-ink-200 dark:border-ink-800 shadow-lg py-1 z-20">
+                            {LITERARY_SUB_STYLES.map(s => (
+                              <button
+                                key={s.key}
+                                onClick={() => { setLiterarySubStyle(s.key); setShowStyleSelect(false); }}
+                                className={`w-full text-left px-3 py-2 text-xs transition-colors ${
+                                  literarySubStyle === s.key
+                                    ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 font-medium'
+                                    : 'text-ink-600 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800'
+                                }`}
+                              >
+                                <div>{s.name}</div>
+                                <div className="text-[10px] text-ink-400 dark:text-ink-300 mt-0.5">{s.description}</div>
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
                   <button
                     onClick={handleGenerateOutline}
                     disabled={outlineLoading}
@@ -677,6 +750,143 @@ export default function WritingAssistant({ isOpen, onToggle }: WritingAssistantP
                 >
                   获取写作建议
                 </button>
+              )}
+            </div>
+          )}
+
+          {/* ======== Tab 4: 素材分析 ======== */}
+          {activeTab === 'analyze' && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <PieChart size={14} className="text-green-500" />
+                <span className="text-xs font-bold text-ink-700 dark:text-ink-200">
+                  素材智能分析
+                </span>
+              </div>
+
+              {!fragmentAnalysis && (
+                <>
+                  <p className="text-xs text-ink-400 dark:text-ink-300">
+                    分析 {sortedFragments.length} 条素材的主题聚类、内在关联和缺失角度，帮你发现素材之间的隐藏联系。
+                  </p>
+                  <button
+                    onClick={handleAnalyzeFragments}
+                    disabled={analysisLoading || sortedFragments.length === 0}
+                    className="w-full py-2.5 rounded-xl bg-green-500 hover:bg-green-600 disabled:bg-ink-200 dark:disabled:bg-ink-700 text-white text-sm font-bold transition-colors flex items-center justify-center gap-2"
+                  >
+                    {analysisLoading ? (
+                      <><Loader2 size={14} className="animate-spin" /> 分析中...</>
+                    ) : (
+                      <><GitBranch size={14} /> 开始分析</>
+                    )}
+                  </button>
+                  {analysisError && (
+                    <div className="flex items-start gap-2 p-2 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 text-xs text-red-600">
+                      <AlertCircle size={12} className="shrink-0 mt-0.5" />
+                      {analysisError}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {fragmentAnalysis && (
+                <div className="space-y-3 animate-fade-in">
+                  {/* 总评 */}
+                  <div className="p-3 rounded-xl bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-900/30">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Target size={12} className="text-green-600 dark:text-green-400" />
+                      <span className="text-[10px] font-bold text-green-700 dark:text-green-400">整体评价</span>
+                    </div>
+                    <p className="text-xs text-ink-600 dark:text-ink-300 leading-relaxed">
+                      {fragmentAnalysis.summary}
+                    </p>
+                  </div>
+
+                  {/* 主题聚类 */}
+                  {fragmentAnalysis.clusters.length > 0 && (
+                    <div>
+                      <h4 className="text-[10px] font-semibold text-ink-400 dark:text-ink-300 uppercase tracking-wide mb-2">
+                        主题聚类（{fragmentAnalysis.clusters.length} 组）
+                      </h4>
+                      <div className="space-y-2">
+                        {fragmentAnalysis.clusters.map((cluster, i) => (
+                          <div key={i} className="p-2.5 rounded-lg bg-white dark:bg-ink-800 border border-ink-200 dark:border-ink-700">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-bold text-ink-700 dark:text-ink-200">{cluster.theme}</span>
+                              <span className="text-[10px] text-ink-400 dark:text-ink-300">
+                                素材 {cluster.fragmentIds.join(', ')}
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-ink-500 dark:text-ink-400">{cluster.description}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 素材关联 */}
+                  {fragmentAnalysis.connections.length > 0 && (
+                    <div>
+                      <h4 className="text-[10px] font-semibold text-ink-400 dark:text-ink-300 uppercase tracking-wide mb-2">
+                        隐藏关联
+                      </h4>
+                      <div className="space-y-1.5">
+                        {fragmentAnalysis.connections.map((conn, i) => (
+                          <div key={i} className="flex items-start gap-2 text-[10px] text-ink-600 dark:text-ink-300 p-2 rounded-lg bg-amber-50 dark:bg-amber-900/10">
+                            <GitBranch size={10} className="shrink-0 mt-0.5 text-amber-500" />
+                            <span>素材{conn.from} ↔ 素材{conn.to}：{conn.relation}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 缺失角度 */}
+                  {fragmentAnalysis.missingAngles.length > 0 && (
+                    <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30">
+                      <h4 className="text-[10px] font-bold text-red-700 dark:text-red-400 mb-1.5">
+                        缺失的角度（{fragmentAnalysis.missingAngles.length} 个）
+                      </h4>
+                      <ul className="space-y-1">
+                        {fragmentAnalysis.missingAngles.map((angle, i) => (
+                          <li key={i} className="text-[10px] text-ink-600 dark:text-ink-300 pl-3 relative before:content-['·'] before:absolute before:left-0 before:text-red-500 before:font-bold">
+                            {angle}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* 推荐顺序 */}
+                  {fragmentAnalysis.suggestedOrder.length > 0 && (
+                    <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-900/30">
+                      <h4 className="text-[10px] font-bold text-blue-700 dark:text-blue-400 mb-1.5">
+                        推荐展开顺序
+                      </h4>
+                      <div className="flex flex-wrap gap-1">
+                        {fragmentAnalysis.suggestedOrder.map((num, i) => (
+                          <span key={i} className="inline-flex items-center gap-0.5 text-[10px]">
+                            <span className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium">
+                              素材 {num}
+                            </span>
+                            {i < fragmentAnalysis.suggestedOrder.length - 1 && (
+                              <ArrowRight size={8} className="text-ink-300 dark:text-ink-600" />
+                            )}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleAnalyzeFragments}
+                    disabled={analysisLoading}
+                    className="w-full py-2 rounded-xl border border-ink-200 dark:border-ink-700 text-xs font-medium text-ink-600 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800 transition-colors"
+                  >
+                    <RefreshCw size={12} className="inline mr-1" />
+                    重新分析
+                  </button>
+                </div>
               )}
             </div>
           )}

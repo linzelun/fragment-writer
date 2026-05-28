@@ -9,10 +9,10 @@ interface ProjectFormProps {
 }
 
 const TONE_OPTIONS = [
-  { value: 'casual' as const, label: '轻松随和' },
-  { value: 'professional' as const, label: '专业严谨' },
-  { value: 'academic' as const, label: '学术论述' },
-  { value: 'storytelling' as const, label: '故事叙事' },
+  { value: 'casual' as const, label: '口语随笔' },
+  { value: 'professional' as const, label: '深度长文' },
+  { value: 'academic' as const, label: '学术思辨' },
+  { value: 'storytelling' as const, label: '文学叙事' },
 ];
 
 const LENGTH_OPTIONS = [

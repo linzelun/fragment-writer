@@ -1,15 +1,19 @@
 import { useState, useRef, useEffect } from 'react';
 import { useWriting } from '../stores/writing-store';
-import { Send, Tag, Hash, Bookmark, Sparkles, X } from 'lucide-react';
+import { suggestTags } from '../services/ai-enhanced';
+import { useToast } from '../contexts/ToastContext';
+import { Send, Tag, Hash, Bookmark, Sparkles, X, Loader2 } from 'lucide-react';
 
 export default function FragmentInput() {
   const { activeProject, FragmentActions } = useWriting();
+  const toast = useToast();
   const [content, setContent] = useState('');
   const [note, setNote] = useState('');
   const [tags, setTags] = useState('');
   const [showOptions, setShowOptions] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [suggestingTags, setSuggestingTags] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   const commonTags = ['灵感', '待展开', '数据', '引用', '观点', '故事', '金句', '问题'];
@@ -49,6 +53,24 @@ export default function FragmentInput() {
         ? prev.filter(t => t !== tag)
         : [...prev, tag]
     );
+  };
+
+  const handleSuggestTags = async () => {
+    const trimmed = content.trim();
+    if (!trimmed || suggestingTags) return;
+    setSuggestingTags(true);
+    try {
+      const allExistingTags = [...selectedTags, ...(tags.trim() ? tags.split(/[,，]\s*/).filter(Boolean) : [])];
+      const suggested = await suggestTags(trimmed, activeProject.topic, allExistingTags);
+      if (suggested.length > 0) {
+        setSelectedTags(prev => [...new Set([...prev, ...suggested])]);
+        toast.success(`AI 推荐了 ${suggested.length} 个标签`);
+      }
+    } catch {
+      // silent
+    } finally {
+      setSuggestingTags(false);
+    }
   };
 
   // Collapse on Escape, submit on Ctrl+Enter
@@ -197,6 +219,16 @@ export default function FragmentInput() {
             <span className="hidden sm:inline">{showOptions ? '收起选项' : '标签 & 备注'}</span>
             <span className="sm:hidden">{showOptions ? '收起' : '选项'}</span>
           </button>
+          {content.trim() && (
+            <button
+              onClick={handleSuggestTags}
+              disabled={suggestingTags}
+              className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors disabled:opacity-50"
+            >
+              {suggestingTags ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+              <span className="hidden sm:inline">AI 推荐标签</span>
+            </button>
+          )}
           {selectedTags.length > 0 && (
             <span className="text-xs text-amber-600 dark:text-amber-400 font-medium bg-amber-100 dark:bg-amber-900/30 px-2 py-1 rounded-lg">
               {selectedTags.length} 标签

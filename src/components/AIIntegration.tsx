@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react';
 import { useWriting } from '../stores/writing-store';
 import { generateWithReview } from '../services/ai';
-import { Sparkles, Loader2, AlertCircle, X, CheckCircle2, TrendingUp, BookOpen } from 'lucide-react';
+import { LITERARY_SUB_STYLES } from '../services/ai-enhanced';
+import { Sparkles, Loader2, AlertCircle, X, CheckCircle2, TrendingUp, BookOpen, ChevronDown } from 'lucide-react';
 
 interface AIIntegrationProps {
   onArticleGenerated: () => void;
@@ -15,6 +16,8 @@ export default function AIIntegration({ onArticleGenerated, compact }: AIIntegra
   const [thinkingText, setThinkingText] = useState<string>('');
   const [streamingContent, setStreamingContent] = useState<string>('');
   const [styleScore, setStyleScore] = useState<number | null>(null);
+  const [literarySubStyle, setLiterarySubStyle] = useState<string | null>(null);
+  const [showStyleOptions, setShowStyleOptions] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   if (!activeProject) return null;
@@ -36,6 +39,7 @@ export default function AIIntegration({ onArticleGenerated, compact }: AIIntegra
         onThinking: (text) => setThinkingText(text),
         onContent: (text) => setStreamingContent(text),
         onReviewScore: (score) => setStyleScore(score),
+        literarySubStyle: activeProject.tone === 'storytelling' ? literarySubStyle : null,
       });
 
       if (result) {
@@ -143,9 +147,41 @@ export default function AIIntegration({ onArticleGenerated, compact }: AIIntegra
                   </p>
                 </div>
                 <p className="text-xs text-ink-500 dark:text-ink-400 mt-0.5">
-                    添加素材后可使用 AI 整合
+                  {fragmentCount > 0 ? `${fragmentCount} 条素材待整合` : '添加素材后可使用 AI 整合'}
                 </p>
               </div>
+              {activeProject.tone === 'storytelling' && (
+                <div className="relative shrink-0">
+                  <button
+                    onClick={() => setShowStyleOptions(!showStyleOptions)}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-ink-200 dark:border-ink-700 text-xs font-medium text-ink-500 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800 transition-colors"
+                  >
+                    {literarySubStyle ? LITERARY_SUB_STYLES.find(s => s.key === literarySubStyle)?.name : '选择风格'}
+                    <ChevronDown size={10} />
+                  </button>
+                  {showStyleOptions && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setShowStyleOptions(false)} />
+                      <div className="absolute right-0 bottom-full mb-1 w-48 bg-white dark:bg-ink-900 rounded-xl border border-ink-200 dark:border-ink-800 shadow-lg py-1 z-20">
+                        {LITERARY_SUB_STYLES.map(s => (
+                          <button
+                            key={s.key}
+                            onClick={() => { setLiterarySubStyle(s.key); setShowStyleOptions(false); }}
+                            className={`w-full text-left px-3 py-2 text-xs transition-colors ${
+                              literarySubStyle === s.key
+                                ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 font-medium'
+                                : 'text-ink-600 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800'
+                            }`}
+                          >
+                            <div>{s.name}</div>
+                            <div className="text-[10px] text-ink-400 dark:text-ink-500 mt-0.5">{s.description}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
               <button
                 onClick={handleGenerate}
                 disabled={false}
