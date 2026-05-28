@@ -15,7 +15,7 @@ export default function SearchBar({ value, onChange, placeholder = '搜索素材
         {loading ? (
           <Loader2 size={15} className="text-amber-500 shrink-0 animate-spin" />
         ) : (
-          <Search size={15} className="text-ink-400 dark:text-ink-500 shrink-0" />
+          <Search size={15} className="text-ink-400 dark:text-ink-300 shrink-0" />
         )}
         <input
           type="text"
@@ -23,18 +23,23 @@ export default function SearchBar({ value, onChange, placeholder = '搜索素材
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
-          className="flex-1 h-full bg-transparent text-sm text-ink-900 dark:text-ink-100 placeholder:text-ink-400 dark:placeholder:text-ink-500 border-none outline-none"
+          className="flex-1 h-full bg-transparent text-sm text-ink-900 dark:text-ink-100 placeholder:text-ink-400 dark:placeholder:text-ink-300 border-none outline-none"
         />
+        {!value && (
+          <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-ink-100 dark:bg-ink-700 text-ink-400 dark:text-ink-300 shrink-0">
+            <span className="text-xs">⌘</span>K
+          </kbd>
+        )}
         {value && (
           <button
             onClick={() => onChange('')}
-            className="p-0.5 rounded hover:bg-ink-100 dark:hover:bg-ink-700 text-ink-400 shrink-0"
+            className="p-0.5 rounded hover:bg-ink-100 dark:hover:bg-ink-700 text-ink-400 dark:text-ink-300 shrink-0"
           >
             <X size={14} />
           </button>
         )}
         {resultCount !== undefined && value && (
-          <span className="text-xs text-ink-400 dark:text-ink-500 shrink-0 tabular-nums">
+          <span className="text-xs text-ink-400 dark:text-ink-300 shrink-0 tabular-nums">
             {resultCount} 条
           </span>
         )}

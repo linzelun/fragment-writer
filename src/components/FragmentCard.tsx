@@ -1,7 +1,8 @@
 import { useState, memo } from 'react';
 import { useWriting } from '../stores/writing-store';
 import { useToast } from '../contexts/ToastContext';
-import { Trash2, Edit3, Check, X, Tag, AlertTriangle } from 'lucide-react';
+import ConfirmDialog from './ConfirmDialog';
+import { Trash2, Edit3, Check, X, Tag } from 'lucide-react';
 import type { Fragment, SearchResult } from '../types';
 
 interface FragmentCardProps {
@@ -10,16 +11,32 @@ interface FragmentCardProps {
   searchQuery?: string;
 }
 
-// 本地高亮：对纯文本做正则高亮（后端未返回 highlight 字段时回退使用）
-function highlightText(text: string, query: string): string {
-  if (!query.trim()) return text;
+// 安全高亮：仅允许 <mark> 标签，过滤所有其他 HTML
+function sanitizeAndHighlight(text: string, query: string): string {
+  if (!query.trim()) return escapeHtml(text);
   const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   try {
     const regex = new RegExp(`(${escaped})`, 'gi');
-    return text.replace(regex, '<mark class="bg-amber-200 dark:bg-amber-700/60 rounded px-0.5">$1</mark>');
+    return escapeHtml(text).replace(regex, '<mark class="bg-amber-200 dark:bg-amber-700/60 rounded px-0.5">$1</mark>');
   } catch {
-    return text;
+    return escapeHtml(text);
   }
+}
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// 对后端返回的高亮 HTML 做安全过滤，只保留 <mark> 标签
+function sanitizeHighlightHtml(html: string): string {
+  // 移除所有标签，只保留 <mark> 及其内容
+  return html.replace(/<(\/?)(?!mark\b)[^>]*>/gi, (match) => {
+    return match.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  });
 }
 
 const FragmentCard = memo(function FragmentCard({ fragment, index, searchQuery }: FragmentCardProps) {
@@ -30,15 +47,16 @@ const FragmentCard = memo(function FragmentCard({ fragment, index, searchQuery }
   const [editNote, setEditNote] = useState(fragment.note || '');
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
-  // 判断是否有后端返回的高亮字段（SearchResult 类型）
   const hasHighlight = searchQuery && (fragment as SearchResult).highlightContent !== undefined;
   const highlightedContent = hasHighlight
-    ? (fragment as SearchResult).highlightContent
+    ? sanitizeHighlightHtml((fragment as SearchResult).highlightContent!)
     : searchQuery
-      ? highlightText(fragment.content, searchQuery)
+      ? sanitizeAndHighlight(fragment.content, searchQuery)
       : null;
   const highlightedNote = searchQuery && fragment.note
-    ? (hasHighlight ? (fragment as SearchResult).highlightNote : highlightText(fragment.note, searchQuery))
+    ? (hasHighlight
+        ? sanitizeHighlightHtml((fragment as SearchResult).highlightNote!)
+        : sanitizeAndHighlight(fragment.note, searchQuery))
     : null;
 
   const handleSave = () => {
@@ -126,7 +144,7 @@ const FragmentCard = memo(function FragmentCard({ fragment, index, searchQuery }
           )}
 
           <div className="flex items-center justify-between mt-3 pt-2">
-            <div className="flex items-center gap-3 text-xs text-ink-400 dark:text-ink-500">
+            <div className="flex items-center gap-3 text-xs text-ink-400 dark:text-ink-300">
               <span>{formattedDate}</span>
               {fragment.note && !highlightedNote && (
                 <span className="text-ink-500 dark:text-ink-400 truncate max-w-[120px]">{fragment.note}</span>
@@ -157,36 +175,16 @@ const FragmentCard = memo(function FragmentCard({ fragment, index, searchQuery }
       )}
 
       {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setDeleteConfirm(false)}>
-          <div className="bg-white dark:bg-ink-900 rounded-2xl p-6 max-w-sm w-full shadow-xl animate-fade-up" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                <AlertTriangle size={20} className="text-red-500 dark:text-red-400" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-ink-900 dark:text-ink-100">确认删除</h3>
-                <p className="text-xs text-ink-500 dark:text-ink-400 mt-0.5">删除后不可恢复</p>
-              </div>
-            </div>
-            <p className="text-sm text-ink-600 dark:text-ink-300 mb-6 line-clamp-2 border-l-2 border-ink-200 dark:border-ink-700 pl-3">
-              {fragment.content.slice(0, 80)}{fragment.content.length > 80 ? '...' : ''}
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteConfirm(false)}
-                className="flex-1 h-10 rounded-xl border border-ink-200 dark:border-ink-700 text-sm font-medium text-ink-600 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800 transition-colors"
-              >
-                取消
-              </button>
-              <button
-                onClick={handleDelete}
-                className="flex-1 h-10 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors"
-              >
-                确认删除
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title="确认删除"
+          description="删除后不可恢复"
+          preview={fragment.content.slice(0, 80) + (fragment.content.length > 80 ? '...' : '')}
+          confirmLabel="确认删除"
+          cancelLabel="取消"
+          variant="danger"
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteConfirm(false)}
+        />
       )}
     </div>
   );

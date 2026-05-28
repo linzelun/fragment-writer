@@ -8,8 +8,9 @@ import AIIntegration from '../components/AIIntegration';
 import ArticlePreview from '../components/ArticlePreview';
 import EmptyState from '../components/EmptyState';
 import SearchBar from '../components/SearchBar';
+import WritingAssistant from '../components/WritingAssistant';
 import { fragmentsApi, type SearchResult } from '../services/api';
-import { Menu, Sparkles, BookOpen, ChevronRight, Moon, Sun, Search, Layers } from 'lucide-react';
+import { Menu, Sparkles, BookOpen, Moon, Sun, Layers, Bot } from 'lucide-react';
 import type { Fragment } from '../types';
 
 export default function WritingStudio() {
@@ -17,6 +18,7 @@ export default function WritingStudio() {
   const { isDark, toggle } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showArticle, setShowArticle] = useState(false);
+  const [assistantOpen, setAssistantOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[] | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -24,7 +26,6 @@ export default function WritingStudio() {
 
   const hasArticle = activeProject && state.articles[activeProject.id];
 
-  // 调用后端全文搜索 API
   const doSearch = useCallback(async (q: string) => {
     if (!q.trim() || !activeProject) {
       setSearchResults(null);
@@ -43,7 +44,6 @@ export default function WritingStudio() {
     }
   }, [activeProject]);
 
-  // 防抖：300ms 后触发搜索
   useEffect(() => {
     if (searchTimer.current) clearTimeout(searchTimer.current);
     if (!searchQuery.trim()) {
@@ -58,14 +58,12 @@ export default function WritingStudio() {
     return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
   }, [searchQuery, doSearch]);
 
-  // 搜索结果优先，无搜索时展示全部
   const displayedFragments: Fragment[] = useMemo(() => {
-    if (searchResults !== null) return searchResults as unknown as Fragment[];
+    if (searchResults !== null) return searchResults;
     return sortedFragments;
   }, [searchResults, sortedFragments]);
 
-  // Global keyboard shortcut: Ctrl+K to toggle search
-  useMemo(() => {
+  useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
@@ -85,7 +83,7 @@ export default function WritingStudio() {
             <div className="flex items-center gap-2.5">
               <span className="text-xl">✍️</span>
               <h1 className="font-extrabold text-lg text-ink-900 dark:text-ink-100 tracking-tight">碎片写作</h1>
-              <span className="hidden sm:inline text-xs text-ink-400 dark:text-ink-500 font-medium bg-ink-200/50 dark:bg-ink-800/50 px-2 py-0.5 rounded-md">
+              <span className="hidden sm:inline text-xs text-ink-400 dark:text-ink-300 font-medium bg-ink-200/50 dark:bg-ink-800/50 px-2 py-0.5 rounded-md">
                 积思成文
               </span>
             </div>
@@ -112,7 +110,7 @@ export default function WritingStudio() {
             <div className="flex items-center gap-2.5">
               <span className="text-xl">✍️</span>
               <h1 className="font-extrabold text-lg text-ink-900 dark:text-ink-100 tracking-tight">碎片写作</h1>
-              <span className="hidden sm:inline text-xs text-ink-400 dark:text-ink-500 font-medium bg-ink-200/50 dark:bg-ink-800/50 px-2 py-0.5 rounded-md">
+              <span className="hidden sm:inline text-xs text-ink-400 dark:text-ink-300 font-medium bg-ink-200/50 dark:bg-ink-800/50 px-2 py-0.5 rounded-md">
                 积思成文
               </span>
             </div>
@@ -157,7 +155,7 @@ export default function WritingStudio() {
 
   return (
     <div className="min-h-screen bg-ink-50 dark:bg-ink-950">
-      <header className="sticky top-0 z-20 bg-white dark:bg-ink-900 border-b border-ink-200 dark:border-ink-800">
+      <header className="sticky top-0 z-20 bg-white/90 dark:bg-ink-900/90 backdrop-blur-md border-b border-ink-200/60 dark:border-ink-800/60">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
             <button
@@ -165,34 +163,46 @@ export default function WritingStudio() {
               className="p-1.5 -ml-1 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors shrink-0"
               title="打开项目列表"
             >
-              <Menu size={20} className="text-ink-500 dark:text-ink-400" />
+              <Menu size={20} className="text-ink-500 dark:text-ink-300" />
             </button>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <h1 className="font-semibold text-sm text-ink-900 dark:text-ink-100 truncate">{activeProject.title}</h1>
-                <span className="text-xs font-medium bg-blue-500 text-white px-1.5 py-0.5 rounded-full shrink-0">
+                <span className="text-[10px] font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded-full shrink-0">
                   当前
                 </span>
               </div>
               <div className="flex items-center gap-2 mt-0.5">
-                <p className="text-xs text-ink-400 dark:text-ink-500 truncate">{activeProject.topic}</p>
-                <span className="text-xs text-ink-400 dark:text-ink-500">•</span>
-                <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                <p className="text-xs text-ink-400 dark:text-ink-300 truncate">{activeProject.topic}</p>
+                <span className="text-xs text-ink-400 dark:text-ink-300">•</span>
+                <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
                   {sortedFragments.length} 条素材
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setAssistantOpen(!assistantOpen)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 ${
+                assistantOpen
+                  ? 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400'
+                  : 'text-ink-400 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-800'
+              }`}
+              title="AI 写作助手"
+            >
+              <Bot size={15} />
+              <span className="hidden sm:inline">AI 助手</span>
+            </button>
             <button
               onClick={toggle}
               className="p-1.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors shrink-0"
               title={isDark ? '切换亮色模式' : '切换暗色模式'}
             >
-              {isDark ? <Sun size={15} className="text-ink-400" /> : <Moon size={15} className="text-ink-500" />}
+              {isDark ? <Sun size={15} className="text-ink-300" /> : <Moon size={15} className="text-ink-500" />}
             </button>
-            <div className="text-xs text-ink-400 dark:text-ink-500 font-medium bg-ink-100 dark:bg-ink-800 px-2 py-0.5 rounded-md shrink-0 flex items-center gap-1">
+            <div className="text-xs text-ink-400 dark:text-ink-300 font-medium bg-ink-100 dark:bg-ink-800 px-2 py-0.5 rounded-md shrink-0 hidden sm:flex items-center gap-1">
               <Layers size={12} />
               {state.projects.length} 个项目
             </div>
@@ -200,22 +210,22 @@ export default function WritingStudio() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-4 sm:py-5 pb-20 space-y-3 sm:space-y-4">
+      <main key={activeProject.id} className={`max-w-2xl mx-auto px-4 py-4 sm:py-5 space-y-3 sm:space-y-4 animate-fade-in ${sortedFragments.length > 0 ? 'pb-20' : 'pb-8'}`}>
         {hasArticle && (
-          <div className="rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4">
+          <div className="rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 p-4 animate-fade-in">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center">
-                  <Sparkles size={18} className="text-white" />
+                <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                  <Sparkles size={18} className="text-amber-600 dark:text-amber-400" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-blue-700 dark:text-blue-300">已生成文章</h3>
-                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">{state.articles[activeProject.id]?.title}</p>
+                  <h3 className="text-sm font-semibold text-amber-800 dark:text-amber-300">已生成文章</h3>
+                  <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">{state.articles[activeProject.id]?.title}</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowArticle(true)}
-                className="px-4 py-2 rounded-lg bg-blue-500 text-white text-sm font-medium hover:bg-blue-600 transition-colors"
+                className="px-4 py-2 rounded-lg bg-amber-500 text-white text-sm font-medium hover:bg-amber-600 transition-colors"
               >
                 阅读文章
               </button>
@@ -225,14 +235,14 @@ export default function WritingStudio() {
 
         <div className="rounded-xl bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-800 overflow-hidden">
           <div className="px-4 pt-4 pb-2">
-            <h2 className="text-xs font-semibold text-ink-400 dark:text-ink-500 uppercase tracking-wide">记录素材</h2>
+            <h2 className="text-xs font-semibold text-ink-400 dark:text-ink-300 uppercase tracking-wide">记录素材</h2>
           </div>
           <div className="px-4 pb-4">
             <FragmentInput />
           </div>
         </div>
 
-        {sortedFragments.length > 0 && (
+        {activeProject && (
           <div className="px-4 py-3 rounded-xl bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-800">
             <SearchBar
               value={searchQuery}
@@ -245,17 +255,19 @@ export default function WritingStudio() {
 
         <div className="rounded-xl bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-800 overflow-hidden">
           <div className="px-4 py-3">
-            <h2 className="text-xs font-semibold text-ink-400 dark:text-ink-500 uppercase tracking-wide">素材列表</h2>
+            <h2 className="text-xs font-semibold text-ink-400 dark:text-ink-300 uppercase tracking-wide">素材列表</h2>
           </div>
           <FragmentList fragments={displayedFragments} searchQuery={searchQuery} />
         </div>
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 z-30 bg-white dark:bg-ink-900 border-t border-ink-200 dark:border-ink-800 px-3 sm:px-4 py-2 sm:py-3">
-        <div className="max-w-2xl mx-auto">
-          <AIIntegration onArticleGenerated={() => setShowArticle(true)} compact />
+      {sortedFragments.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-ink-900/95 backdrop-blur-md border-t border-ink-200 dark:border-ink-800 px-3 sm:px-4 py-2 sm:py-3 animate-fade-up">
+          <div className="max-w-2xl mx-auto">
+            <AIIntegration onArticleGenerated={() => setShowArticle(true)} compact />
+          </div>
         </div>
-      </div>
+      )}
 
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 flex">
@@ -269,6 +281,8 @@ export default function WritingStudio() {
       {showArticle && hasArticle && (
         <ArticlePreview onClose={() => setShowArticle(false)} />
       )}
+
+      <WritingAssistant isOpen={assistantOpen} onToggle={setAssistantOpen} />
     </div>
   );
 }

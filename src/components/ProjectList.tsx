@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useWriting } from '../stores/writing-store';
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import ProjectForm from './ProjectForm';
+import ConfirmDialog from './ConfirmDialog';
 
 interface ProjectListProps {
   onClose?: () => void;
@@ -48,7 +49,7 @@ export default function ProjectList({ onClose }: ProjectListProps) {
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
             <span className="text-3xl mb-3">✍️</span>
             <p className="text-sm text-ink-500 dark:text-ink-400 mb-1">还没有写作项目</p>
-            <p className="text-xs text-ink-400 dark:text-ink-500">创建一个项目，开始记录你的思考碎片</p>
+            <p className="text-xs text-ink-400 dark:text-ink-300">创建一个项目，开始记录你的思考碎片</p>
           </div>
         ) : (
           <div className="space-y-0.5">
@@ -87,7 +88,7 @@ export default function ProjectList({ onClose }: ProjectListProps) {
                         <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full shrink-0 ml-2">当前</span>
                       )}
                     </div>
-                    <p className="text-xs text-ink-400 dark:text-ink-500 truncate mt-0.5">
+                    <p className="text-xs text-ink-400 dark:text-ink-300 truncate mt-0.5">
                       {project.topic || '未设置主题'}
                     </p>
                   </div>
@@ -102,26 +103,15 @@ export default function ProjectList({ onClose }: ProjectListProps) {
 
       {/* Delete Confirm Modal */}
       {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setDeleteConfirm(null)}>
-          <div className="bg-white dark:bg-ink-900 rounded-2xl p-6 max-w-sm w-full shadow-xl animate-fade-up" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-ink-900 dark:text-ink-100 mb-2">删除项目</h3>
-            <p className="text-sm text-ink-500 dark:text-ink-400 mb-6">删除后，该项目下的所有写作素材也将被删除。此操作不可撤销。</p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                className="flex-1 h-11 rounded-xl border border-ink-200 dark:border-ink-700 text-ink-600 dark:text-ink-300 font-medium text-sm hover:bg-ink-50 dark:hover:bg-ink-800 active:scale-[0.98] transition-all focus:outline-none focus:ring-2 focus:ring-amber-400"
-              >
-                取消
-              </button>
-              <button
-                onClick={() => { ProjectActions.deleteProject(deleteConfirm); setDeleteConfirm(null); }}
-                className="flex-1 h-11 rounded-xl bg-red-500 text-white font-medium text-sm hover:bg-red-600 active:scale-[0.98] transition-all focus:outline-none focus:ring-2 focus:ring-red-400"
-              >
-                删除
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title="删除项目"
+          description="删除后，该项目下的所有写作素材也将被删除。此操作不可撤销。"
+          confirmLabel="删除"
+          cancelLabel="取消"
+          variant="danger"
+          onConfirm={() => { ProjectActions.deleteProject(deleteConfirm); setDeleteConfirm(null); }}
+          onCancel={() => setDeleteConfirm(null)}
+        />
       )}
     </div>
   );

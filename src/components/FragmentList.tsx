@@ -33,7 +33,7 @@ export default function FragmentList({ fragments, searchQuery }: FragmentListPro
     <div className="space-y-4 px-4 pb-4">
       <div className="flex items-center justify-between pb-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-ink-400 dark:text-ink-500 uppercase tracking-wider">
+          <span className="text-xs font-bold text-ink-400 dark:text-ink-300 uppercase tracking-wider">
             {searchQuery ? '搜索结果' : '全部素材'}
           </span>
           <span className="text-[10px] font-bold bg-ink-900/90 dark:bg-ink-100/90 text-white dark:text-ink-900 px-1.5 py-0.5 rounded-full">
@@ -41,7 +41,7 @@ export default function FragmentList({ fragments, searchQuery }: FragmentListPro
           </span>
         </div>
         {!searchQuery && fragments.length > 0 && (
-          <span className="text-[10px] text-ink-400 dark:text-ink-500">
+          <span className="text-[10px] text-ink-400 dark:text-ink-300">
             按时间倒序排列
           </span>
         )}

@@ -63,7 +63,7 @@ export default function TableOfContents({ content }: TableOfContentsProps) {
       {/* Floating button */}
       <button
         onClick={() => setOpen(!open)}
-        className="fixed right-4 bottom-24 z-40 w-10 h-10 rounded-full bg-white dark:bg-ink-800 border border-ink-200 dark:border-ink-700 shadow-lg flex items-center justify-center hover:shadow-xl transition-all text-ink-600 dark:text-ink-300"
+        className="fixed right-4 bottom-32 z-40 w-10 h-10 rounded-full bg-white dark:bg-ink-800 border border-ink-200 dark:border-ink-700 shadow-lg flex items-center justify-center hover:shadow-xl transition-all text-ink-600 dark:text-ink-300"
         title="目录导航"
       >
         <List size={18} />
