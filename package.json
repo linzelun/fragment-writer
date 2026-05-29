@@ -7,7 +7,6 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "proxy": "node proxy-server.cjs",
     "server": "node server/index.cjs"
   },
   "dependencies": {

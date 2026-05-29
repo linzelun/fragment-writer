@@ -3,6 +3,27 @@ const cors = require('cors');
 const https = require('https');
 const Database = require('better-sqlite3');
 const path = require('path');
+const fs = require('fs');
+
+loadDotEnv(path.join(__dirname, '..', '.env'));
+
+// 轻量 .env 加载：仅填充尚未存在的环境变量，避免覆盖系统/部署平台注入的值
+function loadDotEnv(filePath) {
+  if (!fs.existsSync(filePath)) return;
+  const content = fs.readFileSync(filePath, 'utf8');
+  for (const rawLine of content.split('\n')) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) continue;
+    const eq = line.indexOf('=');
+    if (eq === -1) continue;
+    const key = line.slice(0, eq).trim();
+    let value = line.slice(eq + 1).trim();
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+    if (key && !(key in process.env)) process.env[key] = value;
+  }
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -554,8 +575,13 @@ app.get('/api/articles/:projectId/versions/:versionId', wrapRoute((req, res) => 
   res.json(articleRow);
 }));
 
-const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'sk-1309f0b2ab6342619d4bdf4fe4c22e28';
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 const DEEPSEEK_BASE = 'api.deepseek.com';
+
+if (!DEEPSEEK_API_KEY) {
+  console.error('[启动失败] 缺少环境变量 DEEPSEEK_API_KEY。请在 .env 中配置，或在启动前导出该变量。');
+  process.exit(1);
+}
 
 app.post('/api/deepseek/v1/chat/completions', (req, res) => {
   const options = {
