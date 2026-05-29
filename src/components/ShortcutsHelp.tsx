@@ -1,4 +1,4 @@
-import { X, Search, CornerDownLeft, Escape, Keyboard } from 'lucide-react';
+import { X, Search, CornerDownLeft, Keyboard } from 'lucide-react';
 
 interface ShortcutsHelpProps {
   onClose: () => void;
