@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     } else if (req.method === 'DELETE') {
       fragments.splice(fragIndex, 1);
       await saveFragments(targetProjectId, fragments);
-      json(res, { success: true });
+      json(res, { ok: true });
     } else {
       error(res, 'Method not allowed', 405);
     }

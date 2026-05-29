@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "api/deepseek/v1/chat/completions.js": {
+      "maxDuration": 300
+    }
+  },
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1" },
     { "src": "/assets/(.*)", "dest": "/assets/$1" },

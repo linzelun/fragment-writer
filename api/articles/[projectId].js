@@ -6,7 +6,6 @@ export default async function handler(req, res) {
 
     if (req.method === 'GET') {
       const article = await getArticle(projectId);
-      if (!article) return error(res, 'Article not found', 404);
       json(res, article);
     } else if (req.method === 'POST') {
       const article = { ...req.body, projectId };

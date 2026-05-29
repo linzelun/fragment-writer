@@ -158,7 +158,7 @@ export const STYLE_PRESETS: Record<string, { name: string; description: string; 
     description: '问题意识驱动、概念辨析清晰、论证逐层推进——像「随机波动」「界面文化」那样有学理深度但不拒人千里',
     icon: 'graduation',
   },
-  literary: {
+  storytelling: {
     name: '文学叙事',
     description: '用细节和画面说话，情感藏在场景里——可选莫迪亚诺式的记忆碎片、沈从文式的乡土诗意、或张爱玲式的冷峻精准',
     icon: 'feather',
@@ -274,7 +274,7 @@ export function buildStylePrompt(style: string): string {
 - 避免居高临下的说教感——你是和读者一起思考，不是替读者思考
 `,
 
-    literary: `
+    storytelling: `
 【文学叙事风格 — 中文原生写作规范】
 
 你是一位文学作家。请根据用户选择的子风格进行创作。
@@ -541,7 +541,7 @@ export async function generateSections(
   let fullStyleGuide = styleGuide;
 
   // 如果选了文学叙事且有子风格，追加子风格指南
-  if (style === 'literary' && literarySubStyle) {
+  if (style === 'storytelling' && literarySubStyle) {
     const subGuide = buildLiterarySubStylePrompt(literarySubStyle);
     fullStyleGuide = styleGuide + '\n\n## 选择的子风格\n' + subGuide;
   }

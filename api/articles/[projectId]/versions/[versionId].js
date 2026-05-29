@@ -14,7 +14,7 @@ export default async function handler(req, res) {
       if (idx === -1) return error(res, 'Version not found', 404);
       versions.splice(idx, 1);
       await saveVersions(projectId, versions);
-      json(res, { success: true });
+      json(res, { ok: true });
     } else {
       error(res, 'Method not allowed', 405);
     }

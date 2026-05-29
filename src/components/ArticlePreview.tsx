@@ -69,9 +69,9 @@ export default function ArticlePreview({ onClose }: ArticlePreviewProps) {
 
   useEffect(() => {
     fetch(`${API_BASE}/api/articles/${activeProject.id}/versions`)
-      .then(r => r.json())
-      .then((data: VersionSummary[]) => setVersions(data))
-      .catch(() => {});
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data: VersionSummary[]) => setVersions(Array.isArray(data) ? data : []))
+      .catch(() => setVersions([]));
   }, [activeProject.id]);
 
   const handleViewVersion = async (v: VersionSummary) => {
@@ -79,6 +79,7 @@ export default function ArticlePreview({ onClose }: ArticlePreviewProps) {
     setShowVersions(false);
     try {
       const r = await fetch(`${API_BASE}/api/articles/${activeProject.id}/versions/${v.id}`);
+      if (!r.ok) return;
       const data = await r.json();
       setVersionContent({
         title: data.title,

@@ -53,3 +53,9 @@ export async function getVersions(projectId) {
 export async function saveVersions(projectId, versions) {
   await kv.set(versionsKey(projectId), versions);
 }
+
+export async function deleteProjectData(projectId) {
+  await kv.del(fragmentsKey(projectId));
+  await kv.del(articleKey(projectId));
+  await kv.del(versionsKey(projectId));
+}

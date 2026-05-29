@@ -1,4 +1,4 @@
-import { getProjects, saveProjects, json, error } from '../../_kv.js';
+import { getProjects, saveProjects, deleteProjectData, json, error } from '../../_kv.js';
 
 export default async function handler(req, res) {
   try {
@@ -17,7 +17,8 @@ export default async function handler(req, res) {
     } else if (req.method === 'DELETE') {
       projects.splice(index, 1);
       await saveProjects(projects);
-      json(res, { success: true });
+      await deleteProjectData(id);
+      json(res, { ok: true });
     } else {
       error(res, 'Method not allowed', 405);
     }

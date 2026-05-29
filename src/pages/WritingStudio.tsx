@@ -35,16 +35,23 @@ export default function WritingStudio() {
       return;
     }
     setSearchLoading(true);
+    const qLower = q.trim().toLowerCase();
     try {
       const res = await fragmentsApi.search(q, activeProject.id, 100);
       setSearchResults(res.results);
     } catch (err) {
       console.warn('[Search] API failed, falling back to local filter', err);
-      setSearchResults(null);
+      const filtered = sortedFragments.filter((f) =>
+        f.content.toLowerCase().includes(qLower) ||
+        f.note?.toLowerCase().includes(qLower) ||
+        f.source?.toLowerCase().includes(qLower) ||
+        f.tags.some((t) => t.toLowerCase().includes(qLower))
+      );
+      setSearchResults(filtered);
     } finally {
       setSearchLoading(false);
     }
-  }, [activeProject]);
+  }, [activeProject, sortedFragments]);
 
   useEffect(() => {
     if (searchTimer.current) clearTimeout(searchTimer.current);
