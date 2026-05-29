@@ -2,13 +2,15 @@ import { useState, memo } from 'react';
 import { useWriting } from '../stores/writing-store';
 import { useToast } from '../contexts/ToastContext';
 import ConfirmDialog from './ConfirmDialog';
-import { Trash2, Edit3, Check, X, Tag } from 'lucide-react';
+import { Trash2, Edit3, Check, X, Tag, CheckSquare, Square } from 'lucide-react';
 import type { Fragment, SearchResult } from '../types';
 
 interface FragmentCardProps {
   fragment: Fragment;
   index: number;
   searchQuery?: string;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }
 
 // 安全高亮：仅允许 <mark> 标签，过滤所有其他 HTML
@@ -42,7 +44,9 @@ function sanitizeHighlightHtml(html: string): string {
     .replace(/&lt;\/mark&gt;/g, '</mark>');
 }
 
-const FragmentCard = memo(function FragmentCard({ fragment, index, searchQuery }: FragmentCardProps) {
+const FragmentCard = memo(function FragmentCard({
+  fragment, index, searchQuery, selected, onToggleSelect,
+}: FragmentCardProps) {
   const { FragmentActions } = useWriting();
   const toast = useToast();
   const [editing, setEditing] = useState(false);
@@ -92,7 +96,9 @@ const FragmentCard = memo(function FragmentCard({ fragment, index, searchQuery }
 
   return (
     <div
-      className="fragment-card group animate-fade-up"
+      className={`fragment-card group animate-fade-up ${
+        selected ? 'ring-2 ring-violet-400 dark:ring-violet-600 bg-violet-50/30 dark:bg-violet-950/20' : ''
+      }`}
       style={{ animationDelay: `${Math.min(index * 30, 300)}ms` }}
     >
       {editing ? (
@@ -121,6 +127,18 @@ const FragmentCard = memo(function FragmentCard({ fragment, index, searchQuery }
         </div>
       ) : (
         <>
+          <div className="flex items-start gap-2">
+            {onToggleSelect && (
+              <button
+                type="button"
+                onClick={onToggleSelect}
+                className="mt-0.5 shrink-0 text-violet-600 dark:text-violet-400"
+                aria-label={selected ? '取消选择' : '选择'}
+              >
+                {selected ? <CheckSquare size={18} /> : <Square size={18} />}
+              </button>
+            )}
+            <div className="min-w-0 flex-1">
           {highlightedContent ? (
             <p
               className="text-[15px] text-ink-800 dark:text-ink-200 leading-[1.75] whitespace-pre-wrap font-serif"
@@ -131,6 +149,8 @@ const FragmentCard = memo(function FragmentCard({ fragment, index, searchQuery }
               {fragment.content}
             </p>
           )}
+            </div>
+          </div>
 
           {fragment.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-3">

@@ -5,9 +5,20 @@ import type { Fragment } from '../types';
 interface FragmentListProps {
   fragments: Fragment[];
   searchQuery?: string;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
+  onSelectAll?: () => void;
+  onClearSelection?: () => void;
 }
 
-export default function FragmentList({ fragments, searchQuery }: FragmentListProps) {
+export default function FragmentList({
+  fragments,
+  searchQuery,
+  selectedIds,
+  onToggleSelect,
+  onSelectAll,
+  onClearSelection,
+}: FragmentListProps) {
   const { activeProject } = useWriting();
 
   if (!activeProject) return null;
@@ -43,14 +54,35 @@ export default function FragmentList({ fragments, searchQuery }: FragmentListPro
           </span>
         </div>
         {!searchQuery && fragments.length > 0 && (
-          <span className="text-[10px] text-ink-400 dark:text-ink-500">
-            按时间倒序
-          </span>
+          <div className="flex items-center gap-2">
+            {selectedIds && selectedIds.size > 0 && (
+              <span className="text-[10px] font-medium text-violet-600 dark:text-violet-400">
+                已选 {selectedIds.size}
+              </span>
+            )}
+            {onSelectAll && onClearSelection && (
+              <button
+                type="button"
+                onClick={selectedIds?.size === fragments.length ? onClearSelection : onSelectAll}
+                className="text-[10px] text-violet-600 dark:text-violet-400 hover:underline"
+              >
+                {selectedIds?.size === fragments.length ? '取消全选' : '全选'}
+              </button>
+            )}
+            <span className="text-[10px] text-ink-400 dark:text-ink-500">按时间倒序</span>
+          </div>
         )}
       </div>
       <div className="space-y-3">
         {fragments.map((fragment, i) => (
-          <FragmentCard key={fragment.id} fragment={fragment} index={i} searchQuery={searchQuery} />
+          <FragmentCard
+            key={fragment.id}
+            fragment={fragment}
+            index={i}
+            searchQuery={searchQuery}
+            selected={selectedIds?.has(fragment.id)}
+            onToggleSelect={onToggleSelect ? () => onToggleSelect(fragment.id) : undefined}
+          />
         ))}
       </div>
     </div>

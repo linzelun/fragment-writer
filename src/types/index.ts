@@ -66,3 +66,34 @@ export interface ExportFormat {
   mimeType: string;
   extension: string;
 }
+
+/* --- ADHD 写作搭档 --- */
+
+export interface InspirationResult {
+  theme: string;
+  angles: { title: string; description: string }[];
+  connections: string;
+  missing: string;
+}
+
+export interface MicroTask {
+  step: number;
+  title: string;
+  description: string;
+  estimatedMinutes: number;
+}
+
+export type FocusTaskType = 'capture' | 'inspire' | 'draft' | 'custom';
+
+export interface FocusSession {
+  taskType: FocusTaskType;
+  taskLabel: string;
+  durationMinutes: number;
+}
+
+export interface LocalStats {
+  lastCaptureDate: string | null;
+  streakDays: number;
+  totalCaptures: number;
+  aiUsageCount: number;
+}

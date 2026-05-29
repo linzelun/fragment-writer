@@ -2,18 +2,29 @@ import { useState, useRef, useEffect } from 'react';
 import { useWriting } from '../stores/writing-store';
 import { suggestTags } from '../services/ai-enhanced';
 import { useToast } from '../contexts/ToastContext';
+import { recordCapture } from '../services/local-stats';
 import { Send, Tag, Hash, Bookmark, Sparkles, X, Loader2 } from 'lucide-react';
 
-export default function FragmentInput() {
+const DRAFT_KEY = (projectId: string) => `fw-draft-${projectId}`;
+const QUICK_CAPTURE_KEY = 'fw-quick-capture';
+
+interface FragmentInputProps {
+  focusMode?: boolean;
+  onSaved?: () => void;
+}
+
+export default function FragmentInput({ focusMode, onSaved }: FragmentInputProps) {
   const { activeProject, FragmentActions } = useWriting();
   const toast = useToast();
   const [content, setContent] = useState('');
   const [note, setNote] = useState('');
   const [tags, setTags] = useState('');
   const [showOptions, setShowOptions] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [quickCapture] = useState(() => localStorage.getItem(QUICK_CAPTURE_KEY) !== 'false');
+  const [expanded, setExpanded] = useState(() => focusMode || localStorage.getItem(QUICK_CAPTURE_KEY) !== 'false');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [suggestingTags, setSuggestingTags] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   const commonTags = ['灵感', '待展开', '数据', '引用', '观点', '故事', '金句', '问题'];
@@ -23,6 +34,31 @@ export default function FragmentInput() {
       textareaRef.current.focus();
     }
   }, [expanded]);
+
+  // 草稿自动保存
+  useEffect(() => {
+    if (!activeProject || focusMode) return;
+    const key = DRAFT_KEY(activeProject.id);
+    const saved = localStorage.getItem(key);
+    if (saved && !content) {
+      try {
+        const draft = JSON.parse(saved);
+        if (draft.content) setContent(draft.content);
+        if (draft.note) setNote(draft.note);
+        if (draft.selectedTags) setSelectedTags(draft.selectedTags);
+      } catch { /* ignore */ }
+    }
+  }, [activeProject?.id]);
+
+  useEffect(() => {
+    if (!activeProject || focusMode) return;
+    const key = DRAFT_KEY(activeProject.id);
+    if (content.trim() || note.trim() || selectedTags.length) {
+      localStorage.setItem(key, JSON.stringify({ content, note, selectedTags }));
+    } else {
+      localStorage.removeItem(key);
+    }
+  }, [content, note, selectedTags, activeProject?.id, focusMode]);
 
   if (!activeProject) return null;
 
@@ -39,12 +75,20 @@ export default function FragmentInput() {
       tags: allTags,
     });
 
+    recordCapture();
+    localStorage.removeItem(DRAFT_KEY(activeProject.id));
+
     setContent('');
     setNote('');
     setTags('');
     setSelectedTags([]);
-    setShowOptions(false);
-    setExpanded(false);
+    if (!focusMode && !quickCapture) {
+      setShowOptions(false);
+      setExpanded(false);
+    }
+    setJustSaved(true);
+    setTimeout(() => setJustSaved(false), 2000);
+    onSaved?.();
   };
 
   const toggleTag = (tag: string) => {
@@ -91,7 +135,7 @@ export default function FragmentInput() {
     }
   };
 
-  if (!expanded) {
+  if (!expanded && !focusMode) {
     return (
       <div className="animate-fade-in">
         <button
@@ -103,10 +147,10 @@ export default function FragmentInput() {
           </div>
           <div className="text-left flex-1 min-w-0">
             <p className="text-sm font-bold text-ink-600 dark:text-ink-300 group-hover:text-amber-700 dark:group-hover:text-amber-300 transition-colors truncate">
-              记录新的写作素材
+              想到什么就写什么
             </p>
             <p className="text-xs text-ink-400 dark:text-ink-500 mt-0.5 truncate">
-              想法、观点、引用、数据片段...
+              不用整理，先记下来再说
             </p>
           </div>
           <Sparkles size={15} className="text-ink-300 dark:text-ink-600 group-hover:text-amber-400 shrink-0 transition-colors" />
@@ -132,12 +176,14 @@ export default function FragmentInput() {
         value={content}
         onChange={e => setContent(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="写下此刻的想法..."
-        rows={2}
-        className="w-full px-4 py-3.5 text-[15px] text-ink-900 dark:text-ink-100 placeholder:text-ink-400 dark:placeholder:text-ink-500 bg-transparent border-none resize-none focus:outline-none font-serif leading-relaxed"
+        placeholder="一句对白、一个画面、半成品的想法……"
+        rows={focusMode ? 4 : 2}
+        className={`w-full px-4 py-3.5 text-ink-900 dark:text-ink-100 placeholder:text-ink-400 dark:placeholder:text-ink-500 bg-transparent border-none resize-none focus:outline-none font-serif leading-relaxed ${
+          focusMode ? 'text-base' : 'text-[15px]'
+        }`}
       />
 
-      {showOptions && (
+      {!focusMode && showOptions && (
         <div className="px-3 sm:px-4 pb-3 space-y-3 animate-fade-in max-h-64 overflow-y-auto">
           {/* Quick tags */}
           <div>
@@ -214,7 +260,8 @@ export default function FragmentInput() {
         </div>
       )}
 
-      <div className="flex items-center justify-between px-3 sm:px-4 py-2 bg-ink-50/80 dark:bg-ink-800/50">
+      <div className={`flex items-center justify-between px-3 sm:px-4 py-2 bg-ink-50/80 dark:bg-ink-800/50 ${focusMode ? 'border-t border-ink-200/50 dark:border-ink-700/50' : ''}`}>
+        {!focusMode && (
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setShowOptions(!showOptions)}
@@ -242,26 +289,34 @@ export default function FragmentInput() {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => { 
-              setExpanded(false); 
-              setContent(''); 
-              setSelectedTags([]);
-              setTags('');
-              setNote('');
-            }}
-            className="text-xs text-ink-400 dark:text-ink-300 px-2.5 py-1.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors"
-          >
-            取消
-          </button>
+        )}
+        <div className={`flex items-center gap-2 ${focusMode ? 'w-full justify-end' : ''}`}>
+          {justSaved && (
+            <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 animate-fade-in">
+              好，又抓住了一条 ✓
+            </span>
+          )}
+          {!focusMode && (
+            <button
+              onClick={() => {
+                setExpanded(false);
+                setContent('');
+                setSelectedTags([]);
+                setTags('');
+                setNote('');
+              }}
+              className="text-xs text-ink-400 dark:text-ink-300 px-2.5 py-1.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors"
+            >
+              取消
+            </button>
+          )}
           <button
             onClick={handleSubmit}
             disabled={!content.trim()}
             className="btn-primary px-4 py-2 text-xs disabled:shadow-none"
           >
             <Send size={13} />
-            <span className="hidden sm:inline">保存素材</span>
+            <span className="hidden sm:inline">{focusMode ? '记下来' : '保存素材'}</span>
             <span className="sm:hidden">保存</span>
           </button>
         </div>

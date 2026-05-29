@@ -10,9 +10,15 @@ import EmptyState from '../components/EmptyState';
 import SearchBar from '../components/SearchBar';
 import WritingAssistant from '../components/WritingAssistant';
 import ShortcutsHelp from '../components/ShortcutsHelp';
+import FeedbackBanner from '../components/FeedbackBanner';
+import FocusMode from '../components/FocusMode';
+import MicroTasks from '../components/MicroTasks';
+import InspirationPanel from '../components/InspirationPanel';
 import { fragmentsApi, type SearchResult } from '../services/api';
-import { Menu, Sparkles, BookOpen, Moon, Sun, Layers, Bot, Keyboard, History, X, Clock } from 'lucide-react';
-import type { Fragment } from '../types';
+import { getLocalStats, getStaleFragments } from '../services/local-stats';
+import { isReminderEnabled, startReminderScheduler, stopReminderScheduler } from '../services/reminders';
+import { Menu, Sparkles, BookOpen, Moon, Sun, Layers, Bot, Keyboard, History, X, Clock, Target } from 'lucide-react';
+import type { Fragment, FocusSession, LocalStats } from '../types';
 
 interface VersionSummary {
   id: string;
@@ -38,6 +44,42 @@ export default function WritingStudio() {
 
   const [versions, setVersions] = useState<VersionSummary[]>([]);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [selectedFragmentIds, setSelectedFragmentIds] = useState<Set<string>>(new Set());
+  const [focusOpen, setFocusOpen] = useState(false);
+  const [focusSession, setFocusSession] = useState<FocusSession | undefined>();
+  const [localStats, setLocalStats] = useState<LocalStats>(() => getLocalStats());
+
+  const selectedFragments = useMemo(
+    () => sortedFragments.filter((f) => selectedFragmentIds.has(f.id)),
+    [sortedFragments, selectedFragmentIds],
+  );
+
+  const refreshStats = useCallback(() => setLocalStats(getLocalStats()), []);
+
+  useEffect(() => {
+    setSelectedFragmentIds(new Set());
+  }, [activeProject?.id]);
+
+  useEffect(() => {
+    if (isReminderEnabled()) {
+      startReminderScheduler(() => getStaleFragments(sortedFragments));
+    }
+    return () => stopReminderScheduler();
+  }, [sortedFragments]);
+
+  const toggleFragmentSelection = useCallback((id: string) => {
+    setSelectedFragmentIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const handleStartFocus = useCallback((session: FocusSession) => {
+    setFocusSession(session);
+    setFocusOpen(true);
+  }, []);
 
   const hasArticle = activeProject && state.articles[activeProject.id];
 
@@ -215,6 +257,14 @@ export default function WritingStudio() {
 
           <div className="flex items-center gap-1 shrink-0">
             <button
+              onClick={() => handleStartFocus({ taskType: 'capture', taskLabel: '记 1 条素材', durationMinutes: 25 })}
+              className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-bold transition-all btn-icon !px-2.5 !py-2"
+              title="专注模式"
+            >
+              <Target size={15} />
+              <span className="hidden sm:inline">专注</span>
+            </button>
+            <button
               onClick={() => setAssistantOpen(!assistantOpen)}
               className={`flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-bold transition-all ${
                 assistantOpen
@@ -241,6 +291,8 @@ export default function WritingStudio() {
       </header>
 
       <main className={`max-w-2xl mx-auto px-4 py-5 space-y-4 animate-fade-in ${sortedFragments.length > 0 ? 'pb-24' : 'pb-10'}`}>
+        <FeedbackBanner stats={localStats} />
+
         {hasArticle && (
           <div className="article-banner animate-fade-in">
             <div className="flex items-center justify-between gap-3 relative z-10">
@@ -273,10 +325,11 @@ export default function WritingStudio() {
 
         <section className="section-card">
           <div className="px-5 pt-4 pb-1">
-            <h2 className="section-label">记录素材</h2>
+            <h2 className="section-label">灵感收件箱</h2>
+            <p className="text-[11px] text-ink-400 mt-0.5">想到什么就写什么，不用整理</p>
           </div>
           <div className="px-4 pb-4 pt-2">
-            <FragmentInput />
+            <FragmentInput onSaved={refreshStats} />
           </div>
         </section>
 
@@ -293,8 +346,32 @@ export default function WritingStudio() {
           <div className="px-5 py-3.5 border-b border-ink-100/80 dark:border-ink-800/60">
             <h2 className="section-label">素材列表</h2>
           </div>
-          <FragmentList fragments={displayedFragments} searchQuery={searchQuery} />
+          <FragmentList
+            fragments={displayedFragments}
+            searchQuery={searchQuery}
+            selectedIds={selectedFragmentIds}
+            onToggleSelect={toggleFragmentSelection}
+            onSelectAll={() => setSelectedFragmentIds(new Set(displayedFragments.map((f) => f.id)))}
+            onClearSelection={() => setSelectedFragmentIds(new Set())}
+          />
         </section>
+
+        {selectedFragments.length > 0 && activeProject && (
+          <InspirationPanel
+            fragments={selectedFragments}
+            project={activeProject}
+            onAiUsed={refreshStats}
+          />
+        )}
+
+        {activeProject && (
+          <MicroTasks
+            fragments={selectedFragments.length > 0 ? selectedFragments : sortedFragments}
+            project={activeProject}
+            onStartFocus={handleStartFocus}
+            onAiUsed={refreshStats}
+          />
+        )}
       </main>
 
       {sortedFragments.length > 0 && (
@@ -373,6 +450,13 @@ export default function WritingStudio() {
       )}
 
       <WritingAssistant isOpen={assistantOpen} onToggle={setAssistantOpen} />
+
+      <FocusMode
+        open={focusOpen}
+        onClose={() => setFocusOpen(false)}
+        initialTask={focusSession}
+        onFragmentSaved={refreshStats}
+      />
 
       {showHelp && <ShortcutsHelp onClose={() => setShowHelp(false)} />}
     </div>
