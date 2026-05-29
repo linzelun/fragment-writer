@@ -33,10 +33,13 @@ function escapeHtml(str: string): string {
 
 // 对后端返回的高亮 HTML 做安全过滤，只保留 <mark> 标签
 function sanitizeHighlightHtml(html: string): string {
-  // 移除所有标签，只保留 <mark> 及其内容
-  return html.replace(/<(\/?)(?!mark\b)[^>]*>/gi, (match) => {
-    return match.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  });
+  // 先全局转义所有 HTML，再选择性还原 <mark> 和 </mark>
+  return html
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/&lt;mark&gt;/g, '<mark>')
+    .replace(/&lt;\/mark&gt;/g, '</mark>');
 }
 
 const FragmentCard = memo(function FragmentCard({ fragment, index, searchQuery }: FragmentCardProps) {

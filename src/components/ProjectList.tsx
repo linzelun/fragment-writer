@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useWriting } from '../stores/writing-store';
-import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import ProjectForm from './ProjectForm';
 import ConfirmDialog from './ConfirmDialog';
 
@@ -57,7 +57,7 @@ export default function ProjectList({ onClose }: ProjectListProps) {
               return (
                 <div
                   key={project.id}
-                  className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors rounded-lg ${
+                  className={`group flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors rounded-lg ${
                     state.activeProjectId === project.id
                       ? 'bg-blue-50 dark:bg-blue-900/20'
                       : 'hover:bg-ink-50 dark:hover:bg-ink-800'
@@ -93,6 +93,13 @@ export default function ProjectList({ onClose }: ProjectListProps) {
                     </p>
                   </div>
 
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setDeleteConfirm(project.id); }}
+                    className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-ink-300 dark:text-ink-600 hover:text-red-500 dark:hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                    title="删除项目"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                   <ChevronRight size={14} className="text-ink-300 dark:text-ink-600 shrink-0" />
                 </div>
               );

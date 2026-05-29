@@ -766,25 +766,39 @@ export default function WritingAssistant({ isOpen, onToggle }: WritingAssistantP
 
               {!fragmentAnalysis && (
                 <>
-                  <p className="text-xs text-ink-400 dark:text-ink-300">
-                    分析 {sortedFragments.length} 条素材的主题聚类、内在关联和缺失角度，帮你发现素材之间的隐藏联系。
-                  </p>
-                  <button
-                    onClick={handleAnalyzeFragments}
-                    disabled={analysisLoading || sortedFragments.length === 0}
-                    className="w-full py-2.5 rounded-xl bg-green-500 hover:bg-green-600 disabled:bg-ink-200 dark:disabled:bg-ink-700 text-white text-sm font-bold transition-colors flex items-center justify-center gap-2"
-                  >
-                    {analysisLoading ? (
-                      <><Loader2 size={14} className="animate-spin" /> 分析中...</>
-                    ) : (
-                      <><GitBranch size={14} /> 开始分析</>
-                    )}
-                  </button>
-                  {analysisError && (
-                    <div className="flex items-start gap-2 p-2 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 text-xs text-red-600">
-                      <AlertCircle size={12} className="shrink-0 mt-0.5" />
-                      {analysisError}
+                  {sortedFragments.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-10 text-center animate-fade-in">
+                      <div className="w-12 h-12 rounded-2xl bg-ink-100 dark:bg-ink-800 flex items-center justify-center mb-3">
+                        <PieChart size={20} className="text-ink-300 dark:text-ink-600" />
+                      </div>
+                      <p className="text-sm font-medium text-ink-600 dark:text-ink-300">暂无素材可供分析</p>
+                      <p className="text-xs text-ink-400 dark:text-ink-400 mt-1 max-w-[200px]">
+                        先记录一些写作素材，AI 会帮你发现它们之间的隐藏联系。
+                      </p>
                     </div>
+                  ) : (
+                    <>
+                      <p className="text-xs text-ink-400 dark:text-ink-300">
+                        分析 {sortedFragments.length} 条素材的主题聚类、内在关联和缺失角度，帮你发现素材之间的隐藏联系。
+                      </p>
+                      <button
+                        onClick={handleAnalyzeFragments}
+                        disabled={analysisLoading}
+                        className="w-full py-2.5 rounded-xl bg-green-500 hover:bg-green-600 disabled:bg-ink-200 dark:disabled:bg-ink-700 text-white text-sm font-bold transition-colors flex items-center justify-center gap-2"
+                      >
+                        {analysisLoading ? (
+                          <><Loader2 size={14} className="animate-spin" /> 分析中...</>
+                        ) : (
+                          <><GitBranch size={14} /> 开始分析</>
+                        )}
+                      </button>
+                      {analysisError && (
+                        <div className="flex items-start gap-2 p-2 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 text-xs text-red-600">
+                          <AlertCircle size={12} className="shrink-0 mt-0.5" />
+                          {analysisError}
+                        </div>
+                      )}
+                    </>
                   )}
                 </>
               )}

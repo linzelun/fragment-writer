@@ -77,7 +77,10 @@ interface WritingContextValue {
 const WritingContext = createContext<WritingContextValue | null>(null);
 
 function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 11);
 }
 
 export function WritingProvider({ children }: { children: ReactNode }) {
@@ -155,6 +158,22 @@ export function WritingProvider({ children }: { children: ReactNode }) {
     }, []),
   };
 
+  // 乐观更新项目列表中的 fragmentCount 和 lastFragmentAt
+  const optimisticUpdateProjectFragmentCount = useCallback((projectId: string, delta: number) => {
+    if (delta === 0) return;
+    const updatedProjects = state.projects.map(p =>
+      p.id === projectId
+        ? {
+            ...p,
+            fragmentCount: Math.max(0, (p.fragmentCount || 0) + delta),
+            lastFragmentAt: delta > 0 ? new Date().toISOString() : p.lastFragmentAt,
+            updatedAt: new Date().toISOString(),
+          }
+        : p
+    );
+    dispatch({ type: 'SET_PROJECTS', projects: updatedProjects });
+  }, [state.projects]);
+
   const FragmentActions = {
     addFragment: useCallback(async (data: Omit<Fragment, 'id' | 'createdAt' | 'updatedAt'>) => {
       const id = generateId();
@@ -163,12 +182,10 @@ export function WritingProvider({ children }: { children: ReactNode }) {
       if (state.activeProjectId) {
         const fragments = await api.fragmentsApi.listByProject(state.activeProjectId);
         dispatch({ type: 'SET_FRAGMENTS', fragments });
+        optimisticUpdateProjectFragmentCount(state.activeProjectId, 1);
       }
-      // 刷新项目列表以更新 fragmentCount
-      const projects = await api.projectsApi.list();
-      dispatch({ type: 'SET_PROJECTS', projects });
       return id;
-    }, [state.activeProjectId]),
+    }, [state.activeProjectId, optimisticUpdateProjectFragmentCount]),
 
     updateFragment: useCallback(async (id: string, updates: Partial<Fragment>) => {
       await api.fragmentsApi.update(id, updates);
@@ -176,9 +193,6 @@ export function WritingProvider({ children }: { children: ReactNode }) {
         const fragments = await api.fragmentsApi.listByProject(state.activeProjectId);
         dispatch({ type: 'SET_FRAGMENTS', fragments });
       }
-      // 刷新项目列表以更新 fragmentCount
-      const projects = await api.projectsApi.list();
-      dispatch({ type: 'SET_PROJECTS', projects });
     }, [state.activeProjectId]),
 
     deleteFragment: useCallback(async (id: string) => {
@@ -186,20 +200,15 @@ export function WritingProvider({ children }: { children: ReactNode }) {
       if (state.activeProjectId) {
         const fragments = await api.fragmentsApi.listByProject(state.activeProjectId);
         dispatch({ type: 'SET_FRAGMENTS', fragments });
+        optimisticUpdateProjectFragmentCount(state.activeProjectId, -1);
       }
-      // 刷新项目列表以更新 fragmentCount
-      const projects = await api.projectsApi.list();
-      dispatch({ type: 'SET_PROJECTS', projects });
-    }, [state.activeProjectId]),
+    }, [state.activeProjectId, optimisticUpdateProjectFragmentCount]),
 
     reloadFragments: useCallback(async () => {
       if (state.activeProjectId) {
         const fragments = await api.fragmentsApi.listByProject(state.activeProjectId);
         dispatch({ type: 'SET_FRAGMENTS', fragments });
       }
-      // 刷新项目列表以更新 fragmentCount
-      const projects = await api.projectsApi.list();
-      dispatch({ type: 'SET_PROJECTS', projects });
     }, [state.activeProjectId]),
   };
 

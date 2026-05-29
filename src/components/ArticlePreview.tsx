@@ -21,7 +21,7 @@ interface VersionSummary {
   createdAt: string;
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export default function ArticlePreview({ onClose }: ArticlePreviewProps) {
   const { activeProject, state, dispatch, ArticleActions } = useWriting();
@@ -145,7 +145,7 @@ export default function ArticlePreview({ onClose }: ArticlePreviewProps) {
   };
 
   const handleFeedbackKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       handleSubmitFeedback();
     }

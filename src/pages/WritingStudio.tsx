@@ -9,8 +9,9 @@ import ArticlePreview from '../components/ArticlePreview';
 import EmptyState from '../components/EmptyState';
 import SearchBar from '../components/SearchBar';
 import WritingAssistant from '../components/WritingAssistant';
+import ShortcutsHelp from '../components/ShortcutsHelp';
 import { fragmentsApi, type SearchResult } from '../services/api';
-import { Menu, Sparkles, BookOpen, Moon, Sun, Layers, Bot } from 'lucide-react';
+import { Menu, Sparkles, BookOpen, Moon, Sun, Layers, Bot, Keyboard } from 'lucide-react';
 import type { Fragment } from '../types';
 
 export default function WritingStudio() {
@@ -19,6 +20,7 @@ export default function WritingStudio() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showArticle, setShowArticle] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[] | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -70,6 +72,10 @@ export default function WritingStudio() {
         const searchInput = document.querySelector<HTMLInputElement>('[data-search-bar]');
         searchInput?.focus();
       }
+      if (e.key === '?' && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
+        e.preventDefault();
+        setShowHelp(prev => !prev);
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -92,11 +98,19 @@ export default function WritingStudio() {
             </button>
           </div>
         </header>
-        <div className="max-w-2xl mx-auto px-4 py-12 space-y-4 animate-pulse">
-          <div className="h-16 bg-ink-200 dark:bg-ink-800 rounded-2xl" />
-          <div className="h-32 bg-ink-200 dark:bg-ink-800 rounded-2xl" />
-          <div className="h-24 bg-ink-200 dark:bg-ink-800 rounded-2xl" />
-          <div className="h-24 bg-ink-200 dark:bg-ink-800 rounded-2xl" />
+        <div className="max-w-2xl mx-auto px-4 py-4 sm:py-5 space-y-3 sm:space-y-4 animate-pulse">
+          {/* Article banner skeleton */}
+          <div className="h-[72px] bg-ink-200 dark:bg-ink-800 rounded-xl" />
+          {/* Fragment input skeleton */}
+          <div className="h-24 bg-ink-200 dark:bg-ink-800 rounded-xl" />
+          {/* Search skeleton */}
+          <div className="h-10 bg-ink-200 dark:bg-ink-800 rounded-xl" />
+          {/* Fragment cards skeleton */}
+          <div className="space-y-3">
+            <div className="h-28 bg-ink-200 dark:bg-ink-800 rounded-xl" />
+            <div className="h-24 bg-ink-200 dark:bg-ink-800 rounded-xl" />
+            <div className="h-28 bg-ink-200 dark:bg-ink-800 rounded-xl" />
+          </div>
         </div>
       </div>
     );
@@ -196,6 +210,12 @@ export default function WritingStudio() {
               <span className="hidden sm:inline">AI 助手</span>
             </button>
             <button
+              onClick={() => setShowHelp(true)}
+              className="p-1.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors shrink-0"
+              title="键盘快捷键 (?)">
+              <Keyboard size={15} className="text-ink-400 dark:text-ink-300" />
+            </button>
+            <button
               onClick={toggle}
               className="p-1.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors shrink-0"
               title={isDark ? '切换亮色模式' : '切换暗色模式'}
@@ -210,7 +230,7 @@ export default function WritingStudio() {
         </div>
       </header>
 
-      <main key={activeProject.id} className={`max-w-2xl mx-auto px-4 py-4 sm:py-5 space-y-3 sm:space-y-4 animate-fade-in ${sortedFragments.length > 0 ? 'pb-20' : 'pb-8'}`}>
+      <main className={`max-w-2xl mx-auto px-4 py-4 sm:py-5 space-y-3 sm:space-y-4 animate-fade-in ${sortedFragments.length > 0 ? 'pb-20' : 'pb-8'}`}>
         {hasArticle && (
           <div className="rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 p-4 animate-fade-in">
             <div className="flex items-center justify-between">
@@ -283,6 +303,8 @@ export default function WritingStudio() {
       )}
 
       <WritingAssistant isOpen={assistantOpen} onToggle={setAssistantOpen} />
+
+      {showHelp && <ShortcutsHelp onClose={() => setShowHelp(false)} />}
     </div>
   );
 }

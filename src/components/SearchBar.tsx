@@ -8,6 +8,8 @@ interface SearchBarProps {
   loading?: boolean;
 }
 
+const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+
 export default function SearchBar({ value, onChange, placeholder = '搜索素材...', resultCount, loading }: SearchBarProps) {
   return (
     <div className="relative">
@@ -27,7 +29,7 @@ export default function SearchBar({ value, onChange, placeholder = '搜索素材
         />
         {!value && (
           <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-ink-100 dark:bg-ink-700 text-ink-400 dark:text-ink-300 shrink-0">
-            <span className="text-xs">⌘</span>K
+            {isMac ? <span className="text-xs">⌘</span>K : 'Ctrl K'}
           </kbd>
         )}
         {value && (

@@ -79,8 +79,15 @@ export default function FragmentInput() {
       e.preventDefault();
       handleSubmit();
     } else if (e.key === 'Escape') {
-      setExpanded(false);
-      setContent('');
+      if (showOptions) {
+        setShowOptions(false);
+      } else {
+        setExpanded(false);
+        setContent('');
+        setNote('');
+        setSelectedTags([]);
+        setTags('');
+      }
     }
   };
 
