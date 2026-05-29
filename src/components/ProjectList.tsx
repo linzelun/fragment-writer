@@ -15,27 +15,28 @@ export default function ProjectList({ onClose }: ProjectListProps) {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-ink-200 dark:border-ink-800">
+    <div className="flex flex-col h-full bg-gradient-to-b from-white to-ink-50/50 dark:from-ink-900 dark:to-ink-950">
+      <div className="flex items-center justify-between px-4 py-4 border-b border-ink-200/70 dark:border-ink-800">
         <div className="flex items-center gap-2">
           {onClose && (
-            <button onClick={onClose} className="p-1 -ml-1 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors">
-              <ChevronLeft size={18} className="text-ink-500 dark:text-ink-400" />
+            <button onClick={onClose} className="btn-icon !p-1.5 -ml-1">
+              <ChevronLeft size={18} />
             </button>
           )}
-          <h2 className="text-base font-semibold text-ink-900 dark:text-ink-100">写作项目</h2>
+          <div>
+            <h2 className="brand-title text-base text-ink-900 dark:text-ink-100">写作项目</h2>
+            <p className="text-[10px] text-ink-400 dark:text-ink-500 mt-0.5">{state.projects.length} 个项目</p>
+          </div>
         </div>
         <button
           onClick={() => { setShowForm(true); setEditingId(null); }}
-          className="w-9 h-9 rounded-lg bg-blue-500 text-white flex items-center justify-center hover:bg-blue-600 active:scale-95 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 text-white flex items-center justify-center hover:from-amber-400 hover:to-amber-500 active:scale-95 transition-all shadow-md shadow-amber-600/25"
           aria-label="新建项目"
         >
-          <Plus size={16} />
+          <Plus size={18} />
         </button>
       </div>
 
-      {/* Project Form */}
       {(showForm || editingId) && (
         <ProjectForm
           editingId={editingId}
@@ -43,52 +44,52 @@ export default function ProjectList({ onClose }: ProjectListProps) {
         />
       )}
 
-      {/* Project List */}
       <div className="flex-1 overflow-y-auto px-3 py-3">
         {state.projects.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-            <span className="text-3xl mb-3">✍️</span>
-            <p className="text-sm text-ink-500 dark:text-ink-400 mb-1">还没有写作项目</p>
-            <p className="text-xs text-ink-400 dark:text-ink-300">创建一个项目，开始记录你的思考碎片</p>
+          <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-amber-100/80 dark:bg-amber-900/25 flex items-center justify-center text-3xl mb-4 border border-amber-200/50 dark:border-amber-800/30">
+              ✍️
+            </div>
+            <p className="text-sm font-semibold text-ink-700 dark:text-ink-300 mb-1">还没有写作项目</p>
+            <p className="text-xs text-ink-400 dark:text-ink-500 leading-relaxed">点击右上角 + 创建第一个项目</p>
           </div>
         ) : (
-          <div className="space-y-0.5">
+          <div className="space-y-1.5">
             {state.projects.map((project) => {
+              const isActive = state.activeProjectId === project.id;
               return (
                 <div
                   key={project.id}
-                  className={`group flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors rounded-lg ${
-                    state.activeProjectId === project.id
-                      ? 'bg-blue-50 dark:bg-blue-900/20'
-                      : 'hover:bg-ink-50 dark:hover:bg-ink-800'
+                  className={`group flex items-center gap-3 px-3.5 py-3 cursor-pointer transition-all duration-200 rounded-xl border ${
+                    isActive
+                      ? 'bg-amber-50/90 dark:bg-amber-900/20 border-amber-200/70 dark:border-amber-800/40 shadow-sm'
+                      : 'border-transparent hover:bg-ink-50/80 dark:hover:bg-ink-800/50 hover:border-ink-200/50 dark:hover:border-ink-700/50'
                   }`}
                   onClick={() => {
                     ProjectActions.setActiveProject(project.id);
                     onClose?.();
                   }}
                 >
-                  <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-sm font-semibold ${
-                    state.activeProjectId === project.id
-                      ? 'bg-blue-500 text-white'
+                  <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold transition-colors ${
+                    isActive
+                      ? 'bg-gradient-to-br from-amber-500 to-amber-600 text-white shadow-sm'
                       : 'bg-ink-100 dark:bg-ink-800 text-ink-500 dark:text-ink-400'
                   }`}>
                     {project.title?.[0]?.toUpperCase() || 'W'}
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <h3 className={`font-medium text-sm truncate ${
-                        state.activeProjectId === project.id
-                          ? 'text-blue-700 dark:text-blue-300'
-                          : 'text-ink-900 dark:text-ink-100'
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className={`font-semibold text-sm truncate ${
+                        isActive ? 'text-amber-900 dark:text-amber-200' : 'text-ink-900 dark:text-ink-100'
                       }`}>
                         {project.title || '未命名项目'}
                       </h3>
-                      {state.activeProjectId === project.id && (
-                        <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full shrink-0 ml-2">当前</span>
+                      {isActive && (
+                        <span className="text-[10px] font-semibold bg-amber-500 text-white px-2 py-0.5 rounded-full shrink-0">当前</span>
                       )}
                     </div>
-                    <p className="text-xs text-ink-400 dark:text-ink-300 truncate mt-0.5">
+                    <p className="text-xs text-ink-400 dark:text-ink-500 truncate mt-0.5">
                       {project.topic || '未设置主题'}
                     </p>
                   </div>
@@ -100,7 +101,7 @@ export default function ProjectList({ onClose }: ProjectListProps) {
                   >
                     <Trash2 size={14} />
                   </button>
-                  <ChevronRight size={14} className="text-ink-300 dark:text-ink-600 shrink-0" />
+                  <ChevronRight size={14} className={`shrink-0 ${isActive ? 'text-amber-400' : 'text-ink-300 dark:text-ink-600'}`} />
                 </div>
               );
             })}
@@ -108,7 +109,6 @@ export default function ProjectList({ onClose }: ProjectListProps) {
         )}
       </div>
 
-      {/* Delete Confirm Modal */}
       {deleteConfirm && (
         <ConfirmDialog
           title="删除项目"

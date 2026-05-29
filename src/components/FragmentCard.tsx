@@ -92,7 +92,7 @@ const FragmentCard = memo(function FragmentCard({ fragment, index, searchQuery }
 
   return (
     <div
-      className="group bg-white/80 dark:bg-ink-900/80 rounded-xl shadow-sm ring-1 ring-ink-900/5 dark:ring-ink-100/5 p-4 transition-all duration-200 hover:shadow-md hover:ring-amber-300/20 dark:hover:ring-amber-600/10 animate-fade-up"
+      className="fragment-card group animate-fade-up"
       style={{ animationDelay: `${Math.min(index * 30, 300)}ms` }}
     >
       {editing ? (
@@ -123,11 +123,11 @@ const FragmentCard = memo(function FragmentCard({ fragment, index, searchQuery }
         <>
           {highlightedContent ? (
             <p
-              className="text-sm text-ink-800 dark:text-ink-200 leading-relaxed whitespace-pre-wrap"
+              className="text-[15px] text-ink-800 dark:text-ink-200 leading-[1.75] whitespace-pre-wrap font-serif"
               dangerouslySetInnerHTML={{ __html: highlightedContent }}
             />
           ) : (
-            <p className="text-sm text-ink-800 dark:text-ink-200 leading-relaxed whitespace-pre-wrap">
+            <p className="text-[15px] text-ink-800 dark:text-ink-200 leading-[1.75] whitespace-pre-wrap font-serif">
               {fragment.content}
             </p>
           )}
@@ -137,7 +137,7 @@ const FragmentCard = memo(function FragmentCard({ fragment, index, searchQuery }
               {fragment.tags.map((tag, i) => (
                 <span
                   key={i}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-xs font-medium"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-50 dark:bg-amber-900/25 text-amber-700 dark:text-amber-400 text-xs font-medium border border-amber-100/80 dark:border-amber-800/30"
                 >
                   <Tag size={10} />
                   {tag}

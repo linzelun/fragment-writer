@@ -2,14 +2,26 @@ import { useState, useRef } from 'react';
 import { useWriting } from '../stores/writing-store';
 import { generateWithReview } from '../services/ai';
 import { LITERARY_SUB_STYLES } from '../services/ai-enhanced';
-import { Sparkles, Loader2, AlertCircle, X, CheckCircle2, TrendingUp, BookOpen, ChevronDown } from 'lucide-react';
+import { Sparkles, Loader2, AlertCircle, X, CheckCircle2, TrendingUp, BookOpen, ChevronDown, History } from 'lucide-react';
+import type { ArticleOutput } from '../types';
+
+interface VersionSummary {
+  id: string;
+  version: number;
+  title: string;
+  summary: string;
+  generatedAt: string;
+  fragmentCount: number;
+  createdAt: string;
+}
 
 interface AIIntegrationProps {
   onArticleGenerated: () => void;
   compact?: boolean;
+  versions?: VersionSummary[];
 }
 
-export default function AIIntegration({ onArticleGenerated, compact }: AIIntegrationProps) {
+export default function AIIntegration({ onArticleGenerated, compact, versions = [] }: AIIntegrationProps) {
   const { state, dispatch, activeProject, sortedFragments, ArticleActions } = useWriting();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -18,6 +30,8 @@ export default function AIIntegration({ onArticleGenerated, compact }: AIIntegra
   const [styleScore, setStyleScore] = useState<number | null>(null);
   const [literarySubStyle, setLiterarySubStyle] = useState<string | null>(null);
   const [showStyleOptions, setShowStyleOptions] = useState(false);
+  const [baseVersionId, setBaseVersionId] = useState<string | null>(null);
+  const [showVersionSelect, setShowVersionSelect] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   if (!activeProject) return null;
@@ -32,6 +46,19 @@ export default function AIIntegration({ onArticleGenerated, compact }: AIIntegra
     setStyleScore(null);
     abortRef.current = new AbortController();
 
+    let baseArticle: ArticleOutput | undefined;
+    if (baseVersionId) {
+      try {
+        const API_BASE = import.meta.env.VITE_API_URL || '';
+        const r = await fetch(`${API_BASE}/api/articles/${activeProject.id}/versions/${baseVersionId}`);
+        if (r.ok) {
+          baseArticle = await r.json();
+        }
+      } catch {
+        // ignore fetch error, generate from scratch
+      }
+    }
+
     try {
       const result = await generateWithReview(activeProject, sortedFragments, {
         signal: abortRef.current.signal,
@@ -40,6 +67,7 @@ export default function AIIntegration({ onArticleGenerated, compact }: AIIntegra
         onContent: (text) => setStreamingContent(text),
         onReviewScore: (score) => setStyleScore(score),
         literarySubStyle: activeProject.tone === 'storytelling' ? literarySubStyle : null,
+        baseArticle,
       });
 
       if (result) {
@@ -182,13 +210,62 @@ export default function AIIntegration({ onArticleGenerated, compact }: AIIntegra
                   )}
                 </div>
               )}
+              {versions.length > 0 && (
+                <div className="relative shrink-0">
+                  <button
+                    onClick={() => setShowVersionSelect(!showVersionSelect)}
+                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+                      baseVersionId
+                        ? 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400'
+                        : 'border-ink-200 dark:border-ink-700 text-ink-500 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800'
+                    }`}
+                  >
+                    <History size={10} />
+                    {baseVersionId ? `基于版本 ${versions.find(v => v.id === baseVersionId)?.version || ''}` : '从头生成'}
+                    <ChevronDown size={10} />
+                  </button>
+                  {showVersionSelect && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setShowVersionSelect(false)} />
+                      <div className="absolute right-0 bottom-full mb-1 w-52 bg-white dark:bg-ink-900 rounded-xl border border-ink-200 dark:border-ink-800 shadow-lg py-1 z-20 max-h-48 overflow-y-auto">
+                        <button
+                          onClick={() => { setBaseVersionId(null); setShowVersionSelect(false); }}
+                          className={`w-full text-left px-3 py-2 text-xs transition-colors ${
+                            !baseVersionId
+                              ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 font-medium'
+                              : 'text-ink-600 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800'
+                          }`}
+                        >
+                          从头生成
+                        </button>
+                        {versions.map(v => (
+                          <button
+                            key={v.id}
+                            onClick={() => { setBaseVersionId(v.id); setShowVersionSelect(false); }}
+                            className={`w-full text-left px-3 py-2 text-xs transition-colors ${
+                              baseVersionId === v.id
+                                ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 font-medium'
+                                : 'text-ink-600 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800'
+                            }`}
+                          >
+                            <div>版本 {v.version} · {v.title}</div>
+                            <div className="text-[10px] text-ink-400 dark:text-ink-500 mt-0.5">
+                              {new Date(v.createdAt).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
               <button
                 onClick={handleGenerate}
                 disabled={false}
-                className="shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-ink-900 dark:bg-ink-100 dark:text-ink-900 text-white font-bold text-sm hover:bg-ink-800 dark:hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
+                className="btn-primary shrink-0 px-5 py-2.5"
               >
                 <Sparkles size={15} />
-AI 生成
+                AI 生成
               </button>
             </>
           )}
@@ -280,10 +357,10 @@ AI 生成
       <button
         onClick={handleGenerate}
         disabled={loading}
-        className="w-full h-11 rounded-xl bg-ink-900 dark:bg-ink-100 dark:text-ink-900 text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-ink-800 dark:hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+        className="btn-primary w-full h-11"
       >
         <Sparkles size={16} />
-{loading ? '正在生成...' : '开始 AI 整合写作'}
+        {loading ? '正在生成...' : '开始 AI 整合写作'}
       </button>
 
       {!loading && (

@@ -40,12 +40,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     >
       {children}
       {/* Toast container */}
-      <div className="fixed bottom-6 right-6 z-[100] flex flex-col-reverse gap-2 max-w-sm w-full pointer-events-none">
+      <div className="fixed bottom-6 right-6 z-[100] flex flex-col-reverse gap-2.5 max-w-sm w-full pointer-events-none">
         {toasts.map(toast => (
           <div
             key={toast.id}
-            className="pointer-events-auto animate-slide-up flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium backdrop-blur-md
-              bg-white/95 dark:bg-ink-800/95 border-ink-200 dark:border-ink-700 text-ink-900 dark:text-ink-100"
+            className="pointer-events-auto animate-slide-up flex items-center gap-3 px-4 py-3.5 rounded-2xl shadow-lg border text-sm font-medium backdrop-blur-xl
+              bg-white/95 dark:bg-ink-800/95 border-ink-200/80 dark:border-ink-700/80 text-ink-900 dark:text-ink-100"
           >
             {toast.type === 'success' && <CheckCircle size={16} className="text-green-500 shrink-0" />}
             {toast.type === 'error' && <XCircle size={16} className="text-red-500 shrink-0" />}

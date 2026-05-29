@@ -11,8 +11,18 @@ import SearchBar from '../components/SearchBar';
 import WritingAssistant from '../components/WritingAssistant';
 import ShortcutsHelp from '../components/ShortcutsHelp';
 import { fragmentsApi, type SearchResult } from '../services/api';
-import { Menu, Sparkles, BookOpen, Moon, Sun, Layers, Bot, Keyboard } from 'lucide-react';
+import { Menu, Sparkles, BookOpen, Moon, Sun, Layers, Bot, Keyboard, History, X, Clock } from 'lucide-react';
 import type { Fragment } from '../types';
+
+interface VersionSummary {
+  id: string;
+  version: number;
+  title: string;
+  summary: string;
+  generatedAt: string;
+  fragmentCount: number;
+  createdAt: string;
+}
 
 export default function WritingStudio() {
   const { state, activeProject, sortedFragments } = useWriting();
@@ -26,7 +36,23 @@ export default function WritingStudio() {
   const [searchLoading, setSearchLoading] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [versions, setVersions] = useState<VersionSummary[]>([]);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
+
   const hasArticle = activeProject && state.articles[activeProject.id];
+
+  // 加载版本列表
+  useEffect(() => {
+    if (!activeProject) {
+      setVersions([]);
+      return;
+    }
+    const API_BASE = import.meta.env.VITE_API_URL || '';
+    fetch(`${API_BASE}/api/articles/${activeProject.id}/versions`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data: VersionSummary[]) => setVersions(Array.isArray(data) ? data : []))
+      .catch(() => setVersions([]));
+  }, [activeProject?.id]);
 
   const doSearch = useCallback(async (q: string) => {
     if (!q.trim() || !activeProject) {
@@ -90,33 +116,28 @@ export default function WritingStudio() {
 
   if (state.loading) {
     return (
-      <div className="min-h-screen bg-ink-50 dark:bg-ink-950">
-        <header className="sticky top-0 z-20 bg-ink-50/90 dark:bg-ink-950/90 backdrop-blur-md border-b border-ink-200/60 dark:border-ink-800/60">
-          <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <span className="text-xl">✍️</span>
-              <h1 className="font-extrabold text-lg text-ink-900 dark:text-ink-100 tracking-tight">碎片写作</h1>
-              <span className="hidden sm:inline text-xs text-ink-400 dark:text-ink-300 font-medium bg-ink-200/50 dark:bg-ink-800/50 px-2 py-0.5 rounded-md">
-                积思成文
-              </span>
+      <div className="page-shell">
+        <header className="glass-header">
+          <div className="max-w-2xl mx-auto px-4 h-[3.75rem] flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-200 to-amber-400 flex items-center justify-center text-lg shadow-sm">✍️</div>
+              <div>
+                <h1 className="brand-title text-base text-ink-900 dark:text-ink-100">碎片写作</h1>
+                <p className="text-[10px] text-ink-400 dark:text-ink-500 tracking-wide">积思成文</p>
+              </div>
             </div>
-            <button onClick={toggle} className="p-2 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors">
-              {isDark ? <Sun size={16} className="text-ink-400" /> : <Moon size={16} className="text-ink-500" />}
+            <button onClick={toggle} className="btn-icon">
+              {isDark ? <Sun size={17} /> : <Moon size={17} />}
             </button>
           </div>
         </header>
-        <div className="max-w-2xl mx-auto px-4 py-4 sm:py-5 space-y-3 sm:space-y-4 animate-pulse">
-          {/* Article banner skeleton */}
-          <div className="h-[72px] bg-ink-200 dark:bg-ink-800 rounded-xl" />
-          {/* Fragment input skeleton */}
-          <div className="h-24 bg-ink-200 dark:bg-ink-800 rounded-xl" />
-          {/* Search skeleton */}
-          <div className="h-10 bg-ink-200 dark:bg-ink-800 rounded-xl" />
-          {/* Fragment cards skeleton */}
+        <div className="max-w-2xl mx-auto px-4 py-5 space-y-4 animate-pulse">
+          <div className="h-[76px] bg-ink-200/60 dark:bg-ink-800/60 rounded-2xl" />
+          <div className="h-28 bg-ink-200/60 dark:bg-ink-800/60 rounded-2xl" />
+          <div className="h-11 bg-ink-200/60 dark:bg-ink-800/60 rounded-2xl" />
           <div className="space-y-3">
-            <div className="h-28 bg-ink-200 dark:bg-ink-800 rounded-xl" />
-            <div className="h-24 bg-ink-200 dark:bg-ink-800 rounded-xl" />
-            <div className="h-28 bg-ink-200 dark:bg-ink-800 rounded-xl" />
+            <div className="h-28 bg-ink-200/60 dark:bg-ink-800/60 rounded-2xl" />
+            <div className="h-24 bg-ink-200/60 dark:bg-ink-800/60 rounded-2xl" />
           </div>
         </div>
       </div>
@@ -125,36 +146,29 @@ export default function WritingStudio() {
 
   if (!activeProject) {
     return (
-      <div className="min-h-screen bg-ink-50">
-        <header className="sticky top-0 z-20 bg-ink-50/90 dark:bg-ink-950/90 backdrop-blur-md border-b border-ink-200/60 dark:border-ink-800/60">
-          <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <span className="text-xl">✍️</span>
-              <h1 className="font-extrabold text-lg text-ink-900 dark:text-ink-100 tracking-tight">碎片写作</h1>
-              <span className="hidden sm:inline text-xs text-ink-400 dark:text-ink-300 font-medium bg-ink-200/50 dark:bg-ink-800/50 px-2 py-0.5 rounded-md">
-                积思成文
-              </span>
+      <div className="page-shell">
+        <header className="glass-header">
+          <div className="max-w-2xl mx-auto px-4 h-[3.75rem] flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-200 to-amber-400 flex items-center justify-center text-lg shadow-sm">✍️</div>
+              <div>
+                <h1 className="brand-title text-base text-ink-900 dark:text-ink-100">碎片写作</h1>
+                <p className="text-[10px] text-ink-400 dark:text-ink-500 tracking-wide">积思成文</p>
+              </div>
             </div>
-            <button
-              onClick={toggle}
-              className="p-2 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors"
-              title={isDark ? '切换亮色模式' : '切换暗色模式'}
-            >
-              {isDark ? <Sun size={16} className="text-ink-400" /> : <Moon size={16} className="text-ink-500" />}
+            <button onClick={toggle} className="btn-icon" title={isDark ? '切换亮色模式' : '切换暗色模式'}>
+              {isDark ? <Sun size={17} /> : <Moon size={17} />}
             </button>
           </div>
         </header>
 
-        <div className="max-w-2xl mx-auto px-4 py-12">
+        <div className="max-w-2xl mx-auto px-4 py-10">
           <EmptyState
             icon="✍️"
             title="开始你的碎片写作之旅"
             description="创建一个写作项目，随时记录零散的想法和素材，AI 帮你整合为完整文章。"
             action={
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-ink-900 text-white text-sm font-bold hover:bg-ink-800 transition-colors"
-              >
+              <button onClick={() => setSidebarOpen(true)} className="btn-primary px-6 py-3">
                 <BookOpen size={16} />
                 创建第一个项目
               </button>
@@ -164,8 +178,8 @@ export default function WritingStudio() {
 
         {sidebarOpen && (
           <div className="fixed inset-0 z-50 flex">
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick={() => setSidebarOpen(false)} />
-            <div className="relative w-80 max-w-[85vw] bg-white h-full shadow-2xl animate-slide-in-left">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onClick={() => setSidebarOpen(false)} />
+            <div className="relative w-80 max-w-[85vw] bg-white dark:bg-ink-900 h-full shadow-2xl animate-slide-in-left border-r border-ink-200/60 dark:border-ink-800">
               <ProjectList onClose={() => setSidebarOpen(false)} />
             </div>
           </div>
@@ -175,131 +189,126 @@ export default function WritingStudio() {
   }
 
   return (
-    <div className="min-h-screen bg-ink-50 dark:bg-ink-950">
-      <header className="sticky top-0 z-20 bg-white/90 dark:bg-ink-900/90 backdrop-blur-md border-b border-ink-200/60 dark:border-ink-800/60">
-        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2 min-w-0">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="p-1.5 -ml-1 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors shrink-0"
-              title="打开项目列表"
-            >
-              <Menu size={20} className="text-ink-500 dark:text-ink-300" />
+    <div className="page-shell">
+      <header className="glass-header">
+        <div className="max-w-2xl mx-auto px-4 h-[3.75rem] flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <button onClick={() => setSidebarOpen(true)} className="btn-icon -ml-1 shrink-0" title="打开项目列表">
+              <Menu size={19} />
             </button>
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <h1 className="font-semibold text-sm text-ink-900 dark:text-ink-100 truncate">{activeProject.title}</h1>
-                <span className="text-[10px] font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded-full shrink-0">
+              <div className="flex items-center gap-2">
+                <h1 className="brand-title text-[15px] text-ink-900 dark:text-ink-100 truncate">{activeProject.title}</h1>
+                <span className="text-[10px] font-semibold bg-amber-100/90 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full shrink-0 border border-amber-200/60 dark:border-amber-800/40">
                   当前
                 </span>
               </div>
               <div className="flex items-center gap-2 mt-0.5">
-                <p className="text-xs text-ink-400 dark:text-ink-300 truncate">{activeProject.topic}</p>
-                <span className="text-xs text-ink-400 dark:text-ink-300">•</span>
-                <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                <p className="text-xs text-ink-500 dark:text-ink-400 truncate">{activeProject.topic}</p>
+                <span className="text-ink-300 dark:text-ink-600">·</span>
+                <span className="text-xs font-medium text-amber-600 dark:text-amber-400 shrink-0">
                   {sortedFragments.length} 条素材
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={() => setAssistantOpen(!assistantOpen)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 ${
+              className={`flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-bold transition-all ${
                 assistantOpen
-                  ? 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400'
-                  : 'text-ink-400 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-800'
+                  ? 'bg-violet-100 dark:bg-violet-900/35 text-violet-600 dark:text-violet-300 shadow-sm'
+                  : 'btn-icon !px-2.5 !py-2'
               }`}
               title="AI 写作助手"
             >
               <Bot size={15} />
               <span className="hidden sm:inline">AI 助手</span>
             </button>
-            <button
-              onClick={() => setShowHelp(true)}
-              className="p-1.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors shrink-0"
-              title="键盘快捷键 (?)">
-              <Keyboard size={15} className="text-ink-400 dark:text-ink-300" />
+            <button onClick={() => setShowHelp(true)} className="btn-icon hidden sm:flex" title="键盘快捷键 (?)">
+              <Keyboard size={15} />
             </button>
-            <button
-              onClick={toggle}
-              className="p-1.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors shrink-0"
-              title={isDark ? '切换亮色模式' : '切换暗色模式'}
-            >
-              {isDark ? <Sun size={15} className="text-ink-300" /> : <Moon size={15} className="text-ink-500" />}
+            <button onClick={toggle} className="btn-icon" title={isDark ? '切换亮色模式' : '切换暗色模式'}>
+              {isDark ? <Sun size={15} /> : <Moon size={15} />}
             </button>
-            <div className="text-xs text-ink-400 dark:text-ink-300 font-medium bg-ink-100 dark:bg-ink-800 px-2 py-0.5 rounded-md shrink-0 hidden sm:flex items-center gap-1">
+            <div className="hidden sm:flex items-center gap-1 text-xs text-ink-500 dark:text-ink-400 font-medium bg-ink-100/80 dark:bg-ink-800/80 px-2.5 py-1.5 rounded-xl border border-ink-200/50 dark:border-ink-700/50">
               <Layers size={12} />
-              {state.projects.length} 个项目
+              {state.projects.length}
             </div>
           </div>
         </div>
       </header>
 
-      <main className={`max-w-2xl mx-auto px-4 py-4 sm:py-5 space-y-3 sm:space-y-4 animate-fade-in ${sortedFragments.length > 0 ? 'pb-20' : 'pb-8'}`}>
+      <main className={`max-w-2xl mx-auto px-4 py-5 space-y-4 animate-fade-in ${sortedFragments.length > 0 ? 'pb-24' : 'pb-10'}`}>
         {hasArticle && (
-          <div className="rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 p-4 animate-fade-in">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                  <Sparkles size={18} className="text-amber-600 dark:text-amber-400" />
+          <div className="article-banner animate-fade-in">
+            <div className="flex items-center justify-between gap-3 relative z-10">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-11 h-11 rounded-xl bg-white/70 dark:bg-ink-900/50 flex items-center justify-center shadow-sm border border-amber-200/50 dark:border-amber-800/30">
+                  <Sparkles size={20} className="text-amber-600 dark:text-amber-400" />
                 </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-amber-800 dark:text-amber-300">已生成文章</h3>
-                  <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">{state.articles[activeProject.id]?.title}</p>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-amber-900 dark:text-amber-200">已生成文章</h3>
+                  <p className="text-xs text-amber-800/80 dark:text-amber-300/80 mt-0.5 truncate">{state.articles[activeProject.id]?.title}</p>
                 </div>
               </div>
-              <button
-                onClick={() => setShowArticle(true)}
-                className="px-4 py-2 rounded-lg bg-amber-500 text-white text-sm font-medium hover:bg-amber-600 transition-colors"
-              >
-                阅读文章
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                {versions.length > 0 && (
+                  <button
+                    onClick={() => setShowVersionHistory(true)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-white/60 dark:bg-ink-900/40 text-amber-800 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40 hover:bg-white/90 dark:hover:bg-ink-900/70 transition-colors"
+                  >
+                    <History size={14} />
+                    历史 ({versions.length})
+                  </button>
+                )}
+                <button onClick={() => setShowArticle(true)} className="btn-accent px-4 py-2.5 shrink-0">
+                  阅读文章
+                </button>
+              </div>
             </div>
           </div>
         )}
 
-        <div className="rounded-xl bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-800 overflow-hidden">
-          <div className="px-4 pt-4 pb-2">
-            <h2 className="text-xs font-semibold text-ink-400 dark:text-ink-300 uppercase tracking-wide">记录素材</h2>
+        <section className="section-card">
+          <div className="px-5 pt-4 pb-1">
+            <h2 className="section-label">记录素材</h2>
           </div>
-          <div className="px-4 pb-4">
+          <div className="px-4 pb-4 pt-2">
             <FragmentInput />
           </div>
-        </div>
+        </section>
 
-        {activeProject && (
-          <div className="px-4 py-3 rounded-xl bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-800">
-            <SearchBar
-              value={searchQuery}
-              onChange={setSearchQuery}
-              resultCount={searchQuery ? displayedFragments.length : undefined}
-              loading={searchLoading}
-            />
-          </div>
-        )}
+        <section className="section-card px-4 py-3.5">
+          <SearchBar
+            value={searchQuery}
+            onChange={setSearchQuery}
+            resultCount={searchQuery ? displayedFragments.length : undefined}
+            loading={searchLoading}
+          />
+        </section>
 
-        <div className="rounded-xl bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-800 overflow-hidden">
-          <div className="px-4 py-3">
-            <h2 className="text-xs font-semibold text-ink-400 dark:text-ink-300 uppercase tracking-wide">素材列表</h2>
+        <section className="section-card">
+          <div className="px-5 py-3.5 border-b border-ink-100/80 dark:border-ink-800/60">
+            <h2 className="section-label">素材列表</h2>
           </div>
           <FragmentList fragments={displayedFragments} searchQuery={searchQuery} />
-        </div>
+        </section>
       </main>
 
       {sortedFragments.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-ink-900/95 backdrop-blur-md border-t border-ink-200 dark:border-ink-800 px-3 sm:px-4 py-2 sm:py-3 animate-fade-up">
-          <div className="max-w-2xl mx-auto">
-            <AIIntegration onArticleGenerated={() => setShowArticle(true)} compact />
+        <div className="floating-bar animate-fade-up">
+          <div className="max-w-2xl mx-auto relative">
+            <AIIntegration onArticleGenerated={() => setShowArticle(true)} compact versions={versions} />
           </div>
         </div>
       )}
 
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 flex">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick={() => setSidebarOpen(false)} />
-          <div className="relative w-80 max-w-[85vw] bg-white dark:bg-ink-900 h-full shadow-2xl animate-slide-in-left">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onClick={() => setSidebarOpen(false)} />
+          <div className="relative w-80 max-w-[85vw] bg-white dark:bg-ink-900 h-full shadow-2xl animate-slide-in-left border-r border-ink-200/60 dark:border-ink-800">
             <ProjectList onClose={() => setSidebarOpen(false)} />
           </div>
         </div>
@@ -307,6 +316,60 @@ export default function WritingStudio() {
 
       {showArticle && hasArticle && (
         <ArticlePreview onClose={() => setShowArticle(false)} />
+      )}
+
+      {showVersionHistory && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
+          <div
+            className="bg-white dark:bg-ink-900 rounded-2xl shadow-2xl w-full max-w-sm mx-4 max-h-[70vh] flex flex-col animate-slide-up border border-ink-200/60 dark:border-ink-800"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-ink-200/60 dark:border-ink-800">
+              <div className="flex items-center gap-2">
+                <History size={18} className="text-amber-500" />
+                <h3 className="text-base font-bold text-ink-900 dark:text-ink-100">生成历史</h3>
+                <span className="text-xs text-ink-400 dark:text-ink-500">({versions.length} 个版本)</span>
+              </div>
+              <button onClick={() => setShowVersionHistory(false)} className="btn-icon">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-3 py-3">
+              {versions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <History size={32} className="text-ink-300 dark:text-ink-600 mb-3" />
+                  <p className="text-sm text-ink-500 dark:text-ink-400">暂无生成历史</p>
+                  <p className="text-xs text-ink-400 dark:text-ink-500 mt-1">AI 生成文章后会自动保存版本</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {versions.map((v) => (
+                    <div
+                      key={v.id}
+                      className="flex items-center gap-3 px-3.5 py-3 rounded-xl bg-ink-50/60 dark:bg-ink-800/40 border border-ink-200/40 dark:border-ink-700/40"
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+                        <span className="text-xs font-bold text-amber-700 dark:text-amber-400">V{v.version}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-ink-800 dark:text-ink-200 truncate">{v.title}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <Clock size={10} className="text-ink-400" />
+                          <span className="text-[11px] text-ink-400 dark:text-ink-500">
+                            {new Date(v.createdAt).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                          <span className="text-[11px] text-ink-400">·</span>
+                          <span className="text-[11px] text-ink-400 dark:text-ink-500">{v.fragmentCount} 条素材</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       <WritingAssistant isOpen={assistantOpen} onToggle={setAssistantOpen} />

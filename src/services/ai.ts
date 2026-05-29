@@ -147,7 +147,7 @@ function buildLiterarySubStyleSystemPrompt(subStyle: string): string {
   return guides[subStyle] || guides.modiano;
 }
 
-function buildUserPrompt(fragments: Fragment[]): string {
+function buildUserPrompt(fragments: Fragment[], baseArticle?: ArticleOutput): string {
   const sorted = [...fragments].sort(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
   );
@@ -159,7 +159,14 @@ function buildUserPrompt(fragments: Fragment[]): string {
     )
     .join('\n\n');
 
-  return `以下是我围绕主题收集的碎片化素材（共 ${fragments.length} 条）：
+  const baseSection = baseArticle
+    ? `以下是我已有的文章基础，请在此基础上结合新素材进行改写和扩充：
+
+${baseArticle.content}
+
+---\n\n新素材：` : '';
+
+  return `${baseSection}以下是我围绕主题收集的碎片化素材（共 ${fragments.length} 条）：
 
 ${fragmentsText}
 
@@ -170,6 +177,7 @@ ${fragmentsText}
 - 在素材之间插入你自己的思考和过渡——素材是砖，你的思考是水泥。
 - 如果某些素材与主题看似无关，思考一下它们之间有没有隐藏的联系。最好的写作往往发现别人没看到的关联。
 - 不是所有素材都必须用上——选择最有力量的，其余可以舍弃。
+${baseArticle ? '- **特别注意**：请基于已有文章基础进行改写，保留有价值的段落，融入新素材，形成更完整的文章。' : ''}
 
 请按照系统提示中的风格要求，将这些素材编织成一篇文章。`;
 }
@@ -254,7 +262,7 @@ async function readSSEStream(
 export async function generateArticle(
   project: WritingProject,
   fragments: Fragment[],
-  options: AIOptions & { literarySubStyle?: string | null } = {}
+  options: AIOptions & { literarySubStyle?: string | null; baseArticle?: ArticleOutput } = {}
 ): Promise<ArticleOutput | null> {
   if (fragments.length === 0) {
     options.onError?.('请先添加一些写作素材');
@@ -274,7 +282,7 @@ export async function generateArticle(
         model: MODEL,
         messages: [
           { role: 'system', content: buildSystemPrompt(project, options.literarySubStyle) },
-          { role: 'user', content: buildUserPrompt(fragments) },
+          { role: 'user', content: buildUserPrompt(fragments, options.baseArticle) },
         ],
         temperature: 0.7,
         max_tokens: 4096,
@@ -486,7 +494,7 @@ export async function reviewStyle(articleContent: string, tone?: string): Promis
 export async function generateWithReview(
   project: WritingProject,
   fragments: Fragment[],
-  options: GenerateWithReviewOptions = {}
+  options: GenerateWithReviewOptions & { baseArticle?: ArticleOutput } = {}
 ): Promise<{ article: ArticleOutput; reviewScore: number; reviewData?: any } | null> {
   options.onThinking?.('AI 正在写作中...');
 
@@ -498,6 +506,7 @@ export async function generateWithReview(
       options.onThinking?.(text);
     },
     literarySubStyle: options.literarySubStyle,
+    baseArticle: options.baseArticle,
   });
 
   if (!article) return null;

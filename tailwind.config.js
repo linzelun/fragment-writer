@@ -40,6 +40,14 @@ export default {
         sans: ['"PingFang SC"', '"Noto Sans SC"', '"Hiragino Sans GB"', 'system-ui', 'sans-serif'],
         serif: ['"Noto Serif SC"', '"Source Han Serif SC"', '"Songti SC"', 'Georgia', 'serif'],
       },
+      boxShadow: {
+        card: '0 1px 0 rgba(255,255,255,0.9) inset, 0 8px 32px -12px rgba(30,28,24,0.1)',
+        'card-hover': '0 12px 40px -12px rgba(30,28,24,0.14)',
+        glow: '0 0 40px -8px rgba(212,149,26,0.35)',
+      },
+      borderRadius: {
+        '2.5xl': '1.25rem',
+      },
       animation: {
         'fade-in': 'fadeIn 0.5s ease both',
         'fade-up': 'fadeUp 0.5s ease both',

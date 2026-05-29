@@ -68,7 +68,7 @@ export default function ProjectForm({ editingId, onClose }: ProjectFormProps) {
         onSubmit={handleSubmit}
       >
         <div className="flex items-center justify-between mb-5">
-          <h3 className="text-lg font-bold text-ink-900 dark:text-ink-100">
+          <h3 className="brand-title text-lg text-ink-900 dark:text-ink-100">
             {editingId ? '编辑项目' : '新建项目'}
           </h3>
           <button type="button" onClick={onClose} className="p-1 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors">
@@ -163,7 +163,7 @@ export default function ProjectForm({ editingId, onClose }: ProjectFormProps) {
         <button
           type="submit"
           disabled={!form.title.trim() || !form.topic.trim()}
-          className="w-full h-12 mt-6 rounded-xl bg-ink-900 dark:bg-ink-100 dark:text-ink-900 text-white font-bold text-sm hover:bg-ink-800 dark:hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          className="btn-primary w-full h-12 mt-6"
         >
           {editingId ? '保存修改' : '创建项目'}
         </button>
