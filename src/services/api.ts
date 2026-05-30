@@ -1,4 +1,4 @@
-import type { WritingProject, Fragment, ArticleOutput, SearchResult } from '../types';
+import type { WritingProject, Fragment, ArticleOutput, ArticleVersion, SearchResult } from '../types';
 
 export type { SearchResult };
 
@@ -18,6 +18,15 @@ export interface SearchResponse {
   total: number;
   results: SearchResult[];
   fallback?: boolean;
+}
+
+export interface BackupData {
+  version: 1;
+  exportedAt: string;
+  projects: WritingProject[];
+  fragments: Fragment[];
+  articles: Array<ArticleOutput & { projectId: string }>;
+  articleVersions: Array<ArticleVersion & ArticleOutput>;
 }
 
 export const projectsApi = {
@@ -48,4 +57,13 @@ export const articlesApi = {
   get: (projectId: string) => api<ArticleOutput | null>(`/api/articles/${projectId}`),
   save: (data: ArticleOutput & { projectId: string }) =>
     api<ArticleOutput>('/api/articles', { method: 'POST', body: JSON.stringify(data) }),
+};
+
+export const backupApi = {
+  exportAll: () => api<BackupData>('/api/backup'),
+  restore: (data: BackupData, mode: 'replace' | 'merge' = 'replace') =>
+    api<{ ok: true; projects: number; fragments: number; articles: number; articleVersions: number }>(
+      '/api/backup',
+      { method: 'POST', body: JSON.stringify({ mode, data }) }
+    ),
 };

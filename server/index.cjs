@@ -575,6 +575,157 @@ app.get('/api/articles/:projectId/versions/:versionId', wrapRoute((req, res) => 
   res.json(articleRow);
 }));
 
+function parseJsonField(value, fallback) {
+  if (value === undefined || value === null || value === '') return fallback;
+  if (typeof value !== 'string') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+}
+
+function normalizeFragmentRow(row) {
+  return {
+    ...row,
+    tags: parseJsonField(row.tags, []),
+  };
+}
+
+function normalizeArticleRow(row) {
+  return {
+    ...row,
+    styleScore: row.styleScore !== null ? row.styleScore : undefined,
+    styleBreakdown: parseJsonField(row.styleBreakdown, undefined),
+    styleHighlights: parseJsonField(row.styleHighlights, undefined),
+    styleImprovements: parseJsonField(row.styleImprovements, undefined),
+  };
+}
+
+app.get('/api/backup', wrapRoute((req, res) => {
+  const projects = db.prepare('SELECT * FROM projects ORDER BY updatedAt DESC').all();
+  const fragments = db.prepare('SELECT * FROM fragments ORDER BY createdAt ASC').all().map(normalizeFragmentRow);
+  const articles = db.prepare('SELECT * FROM articles').all().map(normalizeArticleRow);
+  const articleVersions = db.prepare('SELECT * FROM article_versions ORDER BY projectId ASC, version ASC').all().map(normalizeArticleRow);
+
+  res.json({
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    projects,
+    fragments,
+    articles,
+    articleVersions,
+  });
+}));
+
+app.post('/api/backup', wrapRoute((req, res) => {
+  const { mode = 'replace', data } = req.body || {};
+  if (!data || data.version !== 1) return jsonError(res, 400, '备份文件格式不正确');
+
+  const projects = Array.isArray(data.projects) ? data.projects : [];
+  const fragments = Array.isArray(data.fragments) ? data.fragments : [];
+  const articles = Array.isArray(data.articles) ? data.articles : [];
+  const articleVersions = Array.isArray(data.articleVersions) ? data.articleVersions : [];
+
+  const tx = db.transaction(() => {
+    if (mode === 'replace') {
+      db.prepare('DELETE FROM article_versions').run();
+      db.prepare('DELETE FROM articles').run();
+      db.prepare('DELETE FROM fragments').run();
+      db.prepare('DELETE FROM projects').run();
+    }
+
+    const upsertProject = db.prepare(`
+      INSERT OR REPLACE INTO projects (id, title, topic, description, targetAudience, targetLength, tone, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    for (const p of projects) {
+      if (!p.id || !p.title || !p.topic) continue;
+      upsertProject.run(
+        p.id,
+        p.title,
+        p.topic,
+        p.description || '',
+        p.targetAudience || '',
+        p.targetLength || 'medium',
+        p.tone || 'casual',
+        p.createdAt || new Date().toISOString(),
+        p.updatedAt || p.createdAt || new Date().toISOString()
+      );
+    }
+
+    const upsertFragment = db.prepare(`
+      INSERT OR REPLACE INTO fragments (id, projectId, content, source, note, tags, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    for (const f of fragments) {
+      if (!f.id || !f.projectId || !f.content) continue;
+      upsertFragment.run(
+        f.id,
+        f.projectId,
+        f.content,
+        f.source || '',
+        f.note || '',
+        JSON.stringify(Array.isArray(f.tags) ? f.tags : []),
+        f.createdAt || new Date().toISOString(),
+        f.updatedAt || f.createdAt || new Date().toISOString()
+      );
+    }
+
+    const upsertArticle = db.prepare(`
+      INSERT OR REPLACE INTO articles (projectId, title, content, summary, generatedAt, fragmentCount, styleScore, styleBreakdown, styleHighlights, styleImprovements)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    for (const a of articles) {
+      if (!a.projectId || !a.title || !a.content) continue;
+      upsertArticle.run(
+        a.projectId,
+        a.title,
+        a.content,
+        a.summary || '',
+        a.generatedAt || new Date().toISOString(),
+        a.fragmentCount || 0,
+        a.styleScore ?? null,
+        JSON.stringify(a.styleBreakdown || {}),
+        JSON.stringify(a.styleHighlights || []),
+        JSON.stringify(a.styleImprovements || [])
+      );
+    }
+
+    const upsertVersion = db.prepare(`
+      INSERT OR REPLACE INTO article_versions (id, projectId, version, title, content, summary, generatedAt, fragmentCount, styleScore, styleBreakdown, styleHighlights, styleImprovements, createdAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    for (const v of articleVersions) {
+      if (!v.id || !v.projectId || !v.title || !v.content) continue;
+      upsertVersion.run(
+        v.id,
+        v.projectId,
+        v.version || 1,
+        v.title,
+        v.content,
+        v.summary || '',
+        v.generatedAt || new Date().toISOString(),
+        v.fragmentCount || 0,
+        v.styleScore ?? null,
+        JSON.stringify(v.styleBreakdown || {}),
+        JSON.stringify(v.styleHighlights || []),
+        JSON.stringify(v.styleImprovements || []),
+        v.createdAt || new Date().toISOString()
+      );
+    }
+  });
+
+  tx();
+  res.json({
+    ok: true,
+    projects: projects.length,
+    fragments: fragments.length,
+    articles: articles.length,
+    articleVersions: articleVersions.length,
+  });
+}));
+
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 const DEEPSEEK_BASE = 'api.deepseek.com';
 

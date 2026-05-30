@@ -3,6 +3,7 @@ import { useWriting } from '../stores/writing-store';
 import { Plus, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import ProjectForm from './ProjectForm';
 import ConfirmDialog from './ConfirmDialog';
+import BackupPanel from './BackupPanel';
 
 interface ProjectListProps {
   onClose?: () => void;
@@ -108,6 +109,8 @@ export default function ProjectList({ onClose }: ProjectListProps) {
           </div>
         )}
       </div>
+
+      <BackupPanel />
 
       {deleteConfirm && (
         <ConfirmDialog
