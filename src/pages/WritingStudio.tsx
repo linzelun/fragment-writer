@@ -258,7 +258,7 @@ export default function WritingStudio() {
           <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={() => handleStartFocus({ taskType: 'capture', taskLabel: '记 1 条素材', durationMinutes: 25 })}
-              className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-bold transition-all btn-icon !px-2.5 !py-2"
+              className="hidden min-[380px]:flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-bold transition-all btn-icon !px-2.5 !py-2"
               title="专注模式"
             >
               <Target size={15} />
@@ -295,7 +295,7 @@ export default function WritingStudio() {
 
         {hasArticle && (
           <div className="article-banner animate-fade-in">
-            <div className="flex items-center justify-between gap-3 relative z-10">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 relative z-10">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-11 h-11 rounded-xl bg-white/70 dark:bg-ink-900/50 flex items-center justify-center shadow-sm border border-amber-200/50 dark:border-amber-800/30">
                   <Sparkles size={20} className="text-amber-600 dark:text-amber-400" />
@@ -305,11 +305,11 @@ export default function WritingStudio() {
                   <p className="text-xs text-amber-800/80 dark:text-amber-300/80 mt-0.5 truncate">{state.articles[activeProject.id]?.title}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 sm:justify-end">
                 {versions.length > 0 && (
                   <button
                     onClick={() => setShowVersionHistory(true)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-white/60 dark:bg-ink-900/40 text-amber-800 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40 hover:bg-white/90 dark:hover:bg-ink-900/70 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-white/60 dark:bg-ink-900/40 text-amber-800 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40 hover:bg-white/90 dark:hover:bg-ink-900/70 transition-colors shrink-0"
                   >
                     <History size={14} />
                     历史 ({versions.length})

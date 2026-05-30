@@ -44,7 +44,7 @@ export default function FragmentList({
 
   return (
     <div className="space-y-3 px-4 pb-5">
-      <div className="flex items-center justify-between pt-1 pb-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 pb-2">
         <div className="flex items-center gap-2">
           <span className="section-label">
             {searchQuery ? '搜索结果' : '全部素材'}
@@ -54,7 +54,7 @@ export default function FragmentList({
           </span>
         </div>
         {!searchQuery && fragments.length > 0 && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {selectedIds && selectedIds.size > 0 && (
               <span className="text-[10px] font-medium text-violet-600 dark:text-violet-400">
                 已选 {selectedIds.size}

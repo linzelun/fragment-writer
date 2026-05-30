@@ -141,11 +141,11 @@ const FragmentCard = memo(function FragmentCard({
             <div className="min-w-0 flex-1">
           {highlightedContent ? (
             <p
-              className="text-[15px] text-ink-800 dark:text-ink-200 leading-[1.75] whitespace-pre-wrap font-serif"
+              className="text-[15px] text-ink-800 dark:text-ink-200 leading-[1.75] whitespace-pre-wrap break-words font-serif"
               dangerouslySetInnerHTML={{ __html: highlightedContent }}
             />
           ) : (
-            <p className="text-[15px] text-ink-800 dark:text-ink-200 leading-[1.75] whitespace-pre-wrap font-serif">
+            <p className="text-[15px] text-ink-800 dark:text-ink-200 leading-[1.75] whitespace-pre-wrap break-words font-serif">
               {fragment.content}
             </p>
           )}

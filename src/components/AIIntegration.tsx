@@ -127,7 +127,7 @@ export default function AIIntegration({ onArticleGenerated, compact, versions = 
           </div>
         )}
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {/* Loading */}
           {loading ? (
             <div className="flex items-center gap-3 flex-1">
@@ -179,19 +179,24 @@ export default function AIIntegration({ onArticleGenerated, compact, versions = 
                 </p>
               </div>
               {activeProject.tone === 'storytelling' && (
-                <div className="relative shrink-0">
+                <div className="relative w-full sm:w-auto">
                   <button
-                    onClick={() => setShowStyleOptions(!showStyleOptions)}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-ink-200 dark:border-ink-700 text-xs font-medium text-ink-500 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800 transition-colors"
+                    onClick={() => {
+                      setShowStyleOptions(!showStyleOptions);
+                      setShowVersionSelect(false);
+                    }}
+                    className="flex w-full sm:w-auto items-center justify-between sm:justify-start gap-1 px-2.5 py-1.5 rounded-lg border border-ink-200 dark:border-ink-700 text-xs font-medium text-ink-500 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800 transition-colors"
                   >
-                    {literarySubStyle ? LITERARY_SUB_STYLES.find(s => s.key === literarySubStyle)?.name : '选择风格'}
+                    <span className="truncate max-w-[68vw] sm:max-w-none">
+                      {literarySubStyle ? LITERARY_SUB_STYLES.find(s => s.key === literarySubStyle)?.name : '选择风格'}
+                    </span>
                     <ChevronDown size={10} />
                   </button>
                   {showStyleOptions && (
                     <>
-                      <div className="fixed inset-0 z-10" onClick={() => setShowStyleOptions(false)} />
-                      <div className="absolute right-0 bottom-full mb-1 w-48 bg-white dark:bg-ink-900 rounded-xl border border-ink-200 dark:border-ink-800 shadow-lg py-1 z-20">
-                        {LITERARY_SUB_STYLES.map(s => (
+                      <div className="fixed inset-0 z-10 hidden sm:block" onClick={() => setShowStyleOptions(false)} />
+                      <div className="hidden sm:block absolute left-0 sm:left-auto sm:right-0 bottom-full mb-1 w-[min(88vw,16rem)] bg-white dark:bg-ink-900 rounded-xl border border-ink-200 dark:border-ink-800 shadow-lg py-1 z-20">
+                        {LITERARY_SUB_STYLES.map((s) => (
                           <button
                             key={s.key}
                             onClick={() => { setLiterarySubStyle(s.key); setShowStyleOptions(false); }}
@@ -206,28 +211,61 @@ export default function AIIntegration({ onArticleGenerated, compact, versions = 
                           </button>
                         ))}
                       </div>
+
+                      <div className="sm:hidden fixed inset-0 z-30 flex items-end">
+                        <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" onClick={() => setShowStyleOptions(false)} />
+                        <div className="relative w-full rounded-t-2xl bg-white dark:bg-ink-900 border-t border-ink-200 dark:border-ink-800 shadow-2xl p-4 max-h-[72vh] overflow-y-auto">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="text-sm font-bold text-ink-800 dark:text-ink-200">选择写作风格</h4>
+                            <button onClick={() => setShowStyleOptions(false)} className="btn-icon !p-1.5">
+                              <X size={16} />
+                            </button>
+                          </div>
+                          <div className="space-y-2">
+                            {LITERARY_SUB_STYLES.map((s) => (
+                              <button
+                                key={s.key}
+                                onClick={() => { setLiterarySubStyle(s.key); setShowStyleOptions(false); }}
+                                className={`w-full text-left px-3 py-2.5 rounded-xl border text-xs transition-colors ${
+                                  literarySubStyle === s.key
+                                    ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200/80 dark:border-amber-700/60 font-medium'
+                                    : 'bg-ink-50/60 dark:bg-ink-800/40 text-ink-600 dark:text-ink-300 border-ink-200/60 dark:border-ink-700/60'
+                                }`}
+                              >
+                                <div>{s.name}</div>
+                                <div className="text-[10px] text-ink-400 dark:text-ink-500 mt-1">{s.description}</div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
                     </>
                   )}
                 </div>
               )}
               {versions.length > 0 && (
-                <div className="relative shrink-0">
+                <div className="relative w-full sm:w-auto">
                   <button
-                    onClick={() => setShowVersionSelect(!showVersionSelect)}
-                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+                    onClick={() => {
+                      setShowVersionSelect(!showVersionSelect);
+                      setShowStyleOptions(false);
+                    }}
+                    className={`flex w-full sm:w-auto items-center justify-between sm:justify-start gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
                       baseVersionId
                         ? 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400'
                         : 'border-ink-200 dark:border-ink-700 text-ink-500 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800'
                     }`}
                   >
                     <History size={10} />
-                    {baseVersionId ? `基于版本 ${versions.find(v => v.id === baseVersionId)?.version || ''}` : '从头生成'}
+                    <span className="truncate max-w-[64vw] sm:max-w-none">
+                      {baseVersionId ? `基于版本 ${versions.find(v => v.id === baseVersionId)?.version || ''}` : '从头生成'}
+                    </span>
                     <ChevronDown size={10} />
                   </button>
                   {showVersionSelect && (
                     <>
-                      <div className="fixed inset-0 z-10" onClick={() => setShowVersionSelect(false)} />
-                      <div className="absolute right-0 bottom-full mb-1 w-52 bg-white dark:bg-ink-900 rounded-xl border border-ink-200 dark:border-ink-800 shadow-lg py-1 z-20 max-h-48 overflow-y-auto">
+                      <div className="fixed inset-0 z-10 hidden sm:block" onClick={() => setShowVersionSelect(false)} />
+                      <div className="hidden sm:block absolute left-0 sm:left-auto sm:right-0 bottom-full mb-1 w-[min(90vw,18rem)] bg-white dark:bg-ink-900 rounded-xl border border-ink-200 dark:border-ink-800 shadow-lg py-1 z-20 max-h-48 overflow-y-auto">
                         <button
                           onClick={() => { setBaseVersionId(null); setShowVersionSelect(false); }}
                           className={`w-full text-left px-3 py-2 text-xs transition-colors ${
@@ -238,7 +276,7 @@ export default function AIIntegration({ onArticleGenerated, compact, versions = 
                         >
                           从头生成
                         </button>
-                        {versions.map(v => (
+                        {versions.map((v) => (
                           <button
                             key={v.id}
                             onClick={() => { setBaseVersionId(v.id); setShowVersionSelect(false); }}
@@ -255,6 +293,46 @@ export default function AIIntegration({ onArticleGenerated, compact, versions = 
                           </button>
                         ))}
                       </div>
+
+                      <div className="sm:hidden fixed inset-0 z-30 flex items-end">
+                        <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" onClick={() => setShowVersionSelect(false)} />
+                        <div className="relative w-full rounded-t-2xl bg-white dark:bg-ink-900 border-t border-ink-200 dark:border-ink-800 shadow-2xl p-4 max-h-[72vh] overflow-y-auto">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="text-sm font-bold text-ink-800 dark:text-ink-200">基于历史版本</h4>
+                            <button onClick={() => setShowVersionSelect(false)} className="btn-icon !p-1.5">
+                              <X size={16} />
+                            </button>
+                          </div>
+                          <div className="space-y-2">
+                            <button
+                              onClick={() => { setBaseVersionId(null); setShowVersionSelect(false); }}
+                              className={`w-full text-left px-3 py-2.5 rounded-xl border text-xs transition-colors ${
+                                !baseVersionId
+                                  ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200/80 dark:border-amber-700/60 font-medium'
+                                  : 'bg-ink-50/60 dark:bg-ink-800/40 text-ink-600 dark:text-ink-300 border-ink-200/60 dark:border-ink-700/60'
+                              }`}
+                            >
+                              从头生成
+                            </button>
+                            {versions.map((v) => (
+                              <button
+                                key={v.id}
+                                onClick={() => { setBaseVersionId(v.id); setShowVersionSelect(false); }}
+                                className={`w-full text-left px-3 py-2.5 rounded-xl border text-xs transition-colors ${
+                                  baseVersionId === v.id
+                                    ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200/80 dark:border-amber-700/60 font-medium'
+                                    : 'bg-ink-50/60 dark:bg-ink-800/40 text-ink-600 dark:text-ink-300 border-ink-200/60 dark:border-ink-700/60'
+                                }`}
+                              >
+                                <div>版本 {v.version} · {v.title}</div>
+                                <div className="text-[10px] text-ink-400 dark:text-ink-500 mt-1">
+                                  {new Date(v.createdAt).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
                     </>
                   )}
                 </div>
@@ -262,7 +340,7 @@ export default function AIIntegration({ onArticleGenerated, compact, versions = 
               <button
                 onClick={handleGenerate}
                 disabled={false}
-                className="btn-primary shrink-0 px-5 py-2.5"
+                className="btn-primary w-full sm:w-auto justify-center shrink-0 px-5 py-2.5"
               >
                 <Sparkles size={15} />
                 AI 生成

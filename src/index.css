@@ -156,6 +156,7 @@
 
   .floating-bar {
     @apply fixed bottom-0 left-0 right-0 z-30 border-t backdrop-blur-xl px-3 sm:px-4 py-2.5 sm:py-3;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.625rem);
     background: rgba(255, 255, 255, 0.9);
     border-color: rgba(235, 228, 216, 0.8);
     box-shadow: 0 -8px 32px -8px rgba(30, 28, 24, 0.12);
