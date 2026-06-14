@@ -10,6 +10,7 @@ const mod = isMac ? '⌘' : 'Ctrl';
 const shortcuts = [
   { keys: [`${mod} K`], description: '聚焦搜索框' },
   { keys: [`${mod} Enter`], description: '提交/保存素材' },
+  { keys: ['F'], description: '打开专注模式' },
   { keys: ['?'], description: '显示/隐藏快捷键帮助' },
   { keys: ['Esc'], description: '关闭面板 / 取消操作' },
 ];

@@ -2,7 +2,7 @@ import { useState, memo } from 'react';
 import { useWriting } from '../stores/writing-store';
 import { useToast } from '../contexts/ToastContext';
 import ConfirmDialog from './ConfirmDialog';
-import { Trash2, Edit3, Check, X, Tag, CheckSquare, Square } from 'lucide-react';
+import { Trash2, Edit3, Check, X, Tag, CheckSquare, Square, Pin } from 'lucide-react';
 import type { Fragment, SearchResult } from '../types';
 
 interface FragmentCardProps {
@@ -85,6 +85,16 @@ const FragmentCard = memo(function FragmentCard({
     FragmentActions.deleteFragment(fragment.id);
     toast.success('素材已删除');
     setDeleteConfirm(false);
+  };
+
+  const isPinned = fragment.tags.includes('置顶');
+
+  const togglePin = () => {
+    const tags = isPinned
+      ? fragment.tags.filter((t) => t !== '置顶')
+      : [...fragment.tags, '置顶'];
+    FragmentActions.updateFragment(fragment.id, { tags });
+    toast.success(isPinned ? '已取消置顶' : '已置顶');
   };
 
   const formattedDate = new Date(fragment.createdAt).toLocaleDateString('zh-CN', {
@@ -180,6 +190,17 @@ const FragmentCard = memo(function FragmentCard({
               )}
             </div>
             <div className="flex items-center gap-0.5">
+              <button
+                onClick={togglePin}
+                className={`p-1.5 rounded-lg transition-colors ${
+                  isPinned
+                    ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20'
+                    : 'hover:bg-ink-100 dark:hover:bg-ink-800 text-ink-300 dark:text-ink-600 hover:text-amber-500'
+                }`}
+                title={isPinned ? '取消置顶' : '置顶'}
+              >
+                <Pin size={14} className={isPinned ? 'fill-current' : ''} />
+              </button>
               <button
                 onClick={() => setEditing(true)}
                 className="p-1.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 text-ink-300 dark:text-ink-600 hover:text-ink-600 dark:hover:text-ink-300 transition-colors"

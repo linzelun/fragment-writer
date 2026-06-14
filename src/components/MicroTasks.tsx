@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ListChecks, Loader2, Bell, BellOff } from 'lucide-react';
+import { ListChecks, Loader2, Bell, BellOff, ChevronDown } from 'lucide-react';
 import type { Fragment, FocusSession, MicroTask, WritingProject } from '../types';
 import { splitMicroTasks } from '../services/ai-inspire';
 import { recordAiUsage } from '../services/local-stats';
@@ -22,6 +22,7 @@ export default function MicroTasks({ fragments, project, onStartFocus, onAiUsed 
   const [error, setError] = useState<string | null>(null);
   const [reminderOn, setReminderOn] = useState(isReminderEnabled());
   const [reminderTime, setReminderTimeState] = useState(getReminderTime());
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem('fw-microtasks-collapsed') === 'true');
 
   const handleSplit = async () => {
     setLoading(true);
@@ -61,13 +62,21 @@ export default function MicroTasks({ fragments, project, onStartFocus, onAiUsed 
 
   return (
     <section className="section-card overflow-hidden">
-      <div className="px-5 py-3.5 border-b border-ink-100/80 dark:border-ink-800/60">
-        <div className="flex items-center gap-2">
-          <ListChecks size={16} className="text-emerald-600 dark:text-emerald-400" />
-          <h2 className="section-label">微任务拆分</h2>
-          <span className="text-xs text-ink-400">把大任务拆成今天能做的小步</span>
-        </div>
-      </div>
+      <button
+        type="button"
+        onClick={() => {
+          const next = !collapsed;
+          setCollapsed(next);
+          localStorage.setItem('fw-microtasks-collapsed', next ? 'true' : 'false');
+        }}
+        className="w-full px-5 py-3.5 border-b border-ink-100/80 dark:border-ink-800/60 flex items-center gap-2 hover:bg-ink-50/50 dark:hover:bg-ink-800/30 transition-colors"
+      >
+        <ListChecks size={16} className="text-emerald-600 dark:text-emerald-400" />
+        <h2 className="section-label">微任务拆分</h2>
+        <span className="text-xs text-ink-400">把大任务拆成今天能做的小步</span>
+        <ChevronDown size={16} className={`ml-auto text-ink-400 transition-transform ${collapsed ? '' : 'rotate-180'}`} />
+      </button>
+      {!collapsed && (
       <div className="px-5 py-4 space-y-4">
         <button
           type="button"
@@ -141,6 +150,7 @@ export default function MicroTasks({ fragments, project, onStartFocus, onAiUsed 
           <p className="mt-2 text-[11px] text-ink-400">温和拉回久未触碰的素材，不会施压</p>
         </div>
       </div>
+      )}
     </section>
   );
 }

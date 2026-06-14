@@ -17,6 +17,7 @@ import InspirationPanel from '../components/InspirationPanel';
 import { fragmentsApi, type SearchResult } from '../services/api';
 import { getLocalStats, getStaleFragments } from '../services/local-stats';
 import { isReminderEnabled, startReminderScheduler, stopReminderScheduler } from '../services/reminders';
+import { getWorkingFragments, selectRecentIds } from '../utils/writing-helpers';
 import { Menu, Sparkles, BookOpen, Moon, Sun, Layers, Bot, Keyboard, History, X, Clock, Target } from 'lucide-react';
 import type { Fragment, FocusSession, LocalStats } from '../types';
 
@@ -49,8 +50,8 @@ export default function WritingStudio() {
   const [focusSession, setFocusSession] = useState<FocusSession | undefined>();
   const [localStats, setLocalStats] = useState<LocalStats>(() => getLocalStats());
 
-  const selectedFragments = useMemo(
-    () => sortedFragments.filter((f) => selectedFragmentIds.has(f.id)),
+  const { fragments: workingFragments, source: workingSource } = useMemo(
+    () => getWorkingFragments(sortedFragments, selectedFragmentIds),
     [sortedFragments, selectedFragmentIds],
   );
 
@@ -151,10 +152,14 @@ export default function WritingStudio() {
         e.preventDefault();
         setShowHelp(prev => !prev);
       }
+      if (e.key === 'f' && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName) && activeProject) {
+        e.preventDefault();
+        handleStartFocus({ taskType: 'capture', taskLabel: '记 1 条素材', durationMinutes: 25 });
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [activeProject, handleStartFocus]);
 
   if (state.loading) {
     return (
@@ -221,7 +226,7 @@ export default function WritingStudio() {
         {sidebarOpen && (
           <div className="fixed inset-0 z-50 flex">
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onClick={() => setSidebarOpen(false)} />
-            <div className="relative w-80 max-w-[85vw] bg-white dark:bg-ink-900 h-full shadow-2xl animate-slide-in-left border-r border-ink-200/60 dark:border-ink-800">
+            <div className="relative w-full sm:w-80 sm:max-w-[85vw] bg-white dark:bg-ink-900 h-full shadow-2xl animate-slide-in-left border-r border-ink-200/60 dark:border-ink-800">
               <ProjectList onClose={() => setSidebarOpen(false)} />
             </div>
           </div>
@@ -290,7 +295,7 @@ export default function WritingStudio() {
         </div>
       </header>
 
-      <main className={`max-w-2xl mx-auto px-4 py-5 space-y-4 animate-fade-in ${sortedFragments.length > 0 ? 'pb-24' : 'pb-10'}`}>
+      <main className={`max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-5 space-y-4 animate-fade-in ${sortedFragments.length > 0 ? 'pb-52 sm:pb-28' : 'pb-10'}`}>
         <FeedbackBanner stats={localStats} />
 
         {hasArticle && (
@@ -353,20 +358,24 @@ export default function WritingStudio() {
             onToggleSelect={toggleFragmentSelection}
             onSelectAll={() => setSelectedFragmentIds(new Set(displayedFragments.map((f) => f.id)))}
             onClearSelection={() => setSelectedFragmentIds(new Set())}
+            onSelectRecent={() => setSelectedFragmentIds(selectRecentIds(sortedFragments))}
+            totalCount={sortedFragments.length}
           />
         </section>
 
-        {selectedFragments.length > 0 && activeProject && (
+        {sortedFragments.length > 0 && activeProject && (
           <InspirationPanel
-            fragments={selectedFragments}
+            fragments={workingFragments}
             project={activeProject}
+            source={workingSource}
             onAiUsed={refreshStats}
+            onSelectRecent={() => setSelectedFragmentIds(selectRecentIds(sortedFragments))}
           />
         )}
 
-        {activeProject && (
+        {activeProject && sortedFragments.length > 0 && (
           <MicroTasks
-            fragments={selectedFragments.length > 0 ? selectedFragments : sortedFragments}
+            fragments={workingFragments}
             project={activeProject}
             onStartFocus={handleStartFocus}
             onAiUsed={refreshStats}
@@ -385,7 +394,7 @@ export default function WritingStudio() {
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onClick={() => setSidebarOpen(false)} />
-          <div className="relative w-80 max-w-[85vw] bg-white dark:bg-ink-900 h-full shadow-2xl animate-slide-in-left border-r border-ink-200/60 dark:border-ink-800">
+            <div className="relative w-full sm:w-80 sm:max-w-[85vw] bg-white dark:bg-ink-900 h-full shadow-2xl animate-slide-in-left border-r border-ink-200/60 dark:border-ink-800">
             <ProjectList onClose={() => setSidebarOpen(false)} />
           </div>
         </div>

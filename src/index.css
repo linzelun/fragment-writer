@@ -10,6 +10,9 @@
   html {
     -webkit-tap-highlight-color: transparent;
     scroll-behavior: smooth;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body {
@@ -18,6 +21,22 @@
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+
+  /* 移动端：强制表单控件 ≥16px，覆盖 Tailwind 小字号工具类，避免 iOS 聚焦时自动放大 */
+  @media (max-width: 640px) {
+    input:not([type='checkbox']):not([type='radio']),
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
   }
 
   ::-webkit-scrollbar {
@@ -82,6 +101,7 @@
     background: rgba(255, 255, 255, 0.82);
     border-color: rgba(235, 228, 216, 0.7);
     box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 4px 24px -8px rgba(30, 28, 24, 0.08);
+    padding-top: env(safe-area-inset-top, 0px);
   }
 
   .dark .glass-header {

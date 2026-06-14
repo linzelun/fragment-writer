@@ -24,6 +24,7 @@ const LENGTH_OPTIONS = [
 export default function ProjectForm({ editingId, onClose }: ProjectFormProps) {
   const { state, ProjectActions } = useWriting();
   const existing = editingId ? state.projects.find(p => p.id === editingId) : null;
+  const [advanced, setAdvanced] = useState(!!editingId);
 
   const [form, setForm] = useState({
     title: '',
@@ -49,12 +50,19 @@ export default function ProjectForm({ editingId, onClose }: ProjectFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.title.trim() || !form.topic.trim()) return;
+    if (!form.title.trim()) return;
+
+    const payload = {
+      ...form,
+      topic: form.topic.trim() || form.title.trim(),
+      description: form.description || '',
+      targetAudience: form.targetAudience || '广泛的阅读者',
+    };
 
     if (editingId) {
-      await ProjectActions.updateProject(editingId, form);
+      await ProjectActions.updateProject(editingId, payload);
     } else {
-      const id = await ProjectActions.addProject(form);
+      const id = await ProjectActions.addProject(payload);
       ProjectActions.setActiveProject(id);
     }
     onClose();
@@ -82,18 +90,20 @@ export default function ProjectForm({ editingId, onClose }: ProjectFormProps) {
             <input
               value={form.title}
               onChange={e => setForm({ ...form, title: e.target.value })}
-              placeholder="例如：2024 年度总结、产品设计思考..."
+              placeholder="随便起个名字，比如「三月随笔」"
               className="w-full h-11 px-3.5 rounded-xl border border-ink-200 dark:border-ink-700 bg-ink-50 dark:bg-ink-800 text-sm text-ink-900 dark:text-ink-100 placeholder:text-ink-400 dark:placeholder:text-ink-500 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 dark:focus:ring-amber-900/30 transition-all"
               autoFocus
             />
           </div>
 
+          {(advanced || editingId) && (
+          <>
           <div>
-            <label className="block text-xs font-semibold text-ink-600 dark:text-ink-400 mb-1.5">写作主题 *</label>
+            <label className="block text-xs font-semibold text-ink-600 dark:text-ink-400 mb-1.5">写作主题</label>
             <input
               value={form.topic}
               onChange={e => setForm({ ...form, topic: e.target.value })}
-              placeholder="一句话描述你想写什么..."
+              placeholder="不填则默认与项目名相同"
               className="w-full h-11 px-3.5 rounded-xl border border-ink-200 dark:border-ink-700 bg-ink-50 dark:bg-ink-800 text-sm text-ink-900 dark:text-ink-100 placeholder:text-ink-400 dark:placeholder:text-ink-500 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 dark:focus:ring-amber-900/30 transition-all"
             />
           </div>
@@ -158,11 +168,23 @@ export default function ProjectForm({ editingId, onClose }: ProjectFormProps) {
               ))}
             </div>
           </div>
+          </>
+          )}
+
+          {!editingId && !advanced && (
+            <button
+              type="button"
+              onClick={() => setAdvanced(true)}
+              className="text-xs text-ink-500 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
+            >
+              展开更多选项（篇幅、风格…）
+            </button>
+          )}
         </div>
 
         <button
           type="submit"
-          disabled={!form.title.trim() || !form.topic.trim()}
+          disabled={!form.title.trim()}
           className="btn-primary w-full h-12 mt-6"
         >
           {editingId ? '保存修改' : '创建项目'}

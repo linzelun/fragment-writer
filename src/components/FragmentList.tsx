@@ -9,6 +9,8 @@ interface FragmentListProps {
   onToggleSelect?: (id: string) => void;
   onSelectAll?: () => void;
   onClearSelection?: () => void;
+  onSelectRecent?: () => void;
+  totalCount?: number;
 }
 
 export default function FragmentList({
@@ -18,6 +20,8 @@ export default function FragmentList({
   onToggleSelect,
   onSelectAll,
   onClearSelection,
+  onSelectRecent,
+  totalCount,
 }: FragmentListProps) {
   const { activeProject } = useWriting();
 
@@ -35,7 +39,7 @@ export default function FragmentList({
         <p className="text-sm text-ink-500 dark:text-ink-400 max-w-xs leading-relaxed">
           {searchQuery
             ? `在「${activeProject.title}」中没有找到包含"${searchQuery}"的素材，试试其他关键词。`
-            : `在上方输入框中记录你的想法、灵感或素材片段。`
+            : '在上方记下第一条灵感，不用整理，先存下来再说。'
           }
         </p>
       </div>
@@ -43,7 +47,7 @@ export default function FragmentList({
   }
 
   return (
-    <div className="space-y-3 px-4 pb-5">
+    <div className="px-4 pb-5">
       <div className="flex flex-wrap items-center justify-between gap-2 pt-1 pb-2">
         <div className="flex items-center gap-2">
           <span className="section-label">
@@ -53,12 +57,21 @@ export default function FragmentList({
             {fragments.length}
           </span>
         </div>
-        {!searchQuery && fragments.length > 0 && (
+        {!searchQuery && (
           <div className="flex items-center gap-2 flex-wrap">
             {selectedIds && selectedIds.size > 0 && (
               <span className="text-[10px] font-medium text-violet-600 dark:text-violet-400">
                 已选 {selectedIds.size}
               </span>
+            )}
+            {onSelectRecent && (totalCount ?? fragments.length) > 1 && (
+              <button
+                type="button"
+                onClick={onSelectRecent}
+                className="text-[10px] text-violet-600 dark:text-violet-400 hover:underline"
+              >
+                选最近 5 条
+              </button>
             )}
             {onSelectAll && onClearSelection && (
               <button
@@ -69,10 +82,16 @@ export default function FragmentList({
                 {selectedIds?.size === fragments.length ? '取消全选' : '全选'}
               </button>
             )}
-            <span className="text-[10px] text-ink-400 dark:text-ink-500">按时间倒序</span>
           </div>
         )}
       </div>
+
+      {!searchQuery && onToggleSelect && (
+        <p className="text-[11px] text-ink-400 px-1 pb-2">
+          勾选素材后在「写作台」获取灵感；不选则自动用最近的素材
+        </p>
+      )}
+
       <div className="space-y-3">
         {fragments.map((fragment, i) => (
           <FragmentCard

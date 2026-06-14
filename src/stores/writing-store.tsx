@@ -88,9 +88,12 @@ export function WritingProvider({ children }: { children: ReactNode }) {
 
   const activeProject = state.projects.find(p => p.id === state.activeProjectId);
   const projectFragments = state.fragments.filter(f => f.projectId === state.activeProjectId);
-  const sortedFragments = [...projectFragments].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+  const sortedFragments = [...projectFragments].sort((a, b) => {
+    const aPinned = a.tags.includes('置顶') ? 1 : 0;
+    const bPinned = b.tags.includes('置顶') ? 1 : 0;
+    if (bPinned !== aPinned) return bPinned - aPinned;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
 
   useEffect(() => {
     api.projectsApi.list().then(projects => {

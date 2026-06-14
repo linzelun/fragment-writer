@@ -25,30 +25,39 @@ export default function FragmentInput({ focusMode, onSaved }: FragmentInputProps
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [suggestingTags, setSuggestingTags] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
+  const [hasDraftBanner, setHasDraftBanner] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   const commonTags = ['灵感', '待展开', '数据', '引用', '观点', '故事', '金句', '问题'];
 
   useEffect(() => {
-    if (expanded && textareaRef.current) {
+    const isCoarsePointer = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+    if (expanded && textareaRef.current && (focusMode || !isCoarsePointer)) {
       textareaRef.current.focus();
     }
-  }, [expanded]);
+  }, [expanded, focusMode]);
 
-  // 草稿自动保存
+  // 切换项目时恢复草稿
   useEffect(() => {
     if (!activeProject || focusMode) return;
     const key = DRAFT_KEY(activeProject.id);
     const saved = localStorage.getItem(key);
-    if (saved && !content) {
+    if (saved) {
       try {
         const draft = JSON.parse(saved);
-        if (draft.content) setContent(draft.content);
-        if (draft.note) setNote(draft.note);
-        if (draft.selectedTags) setSelectedTags(draft.selectedTags);
+        setContent(draft.content || '');
+        setNote(draft.note || '');
+        setSelectedTags(draft.selectedTags || []);
+        setHasDraftBanner(!!draft.content?.trim());
+        setExpanded(true);
       } catch { /* ignore */ }
+    } else {
+      setContent('');
+      setNote('');
+      setSelectedTags([]);
+      setHasDraftBanner(false);
     }
-  }, [activeProject?.id]);
+  }, [activeProject?.id, focusMode]);
 
   useEffect(() => {
     if (!activeProject || focusMode) return;
@@ -77,6 +86,7 @@ export default function FragmentInput({ focusMode, onSaved }: FragmentInputProps
 
     recordCapture();
     localStorage.removeItem(DRAFT_KEY(activeProject.id));
+    setHasDraftBanner(false);
 
     setContent('');
     setNote('');
@@ -171,14 +181,32 @@ export default function FragmentInput({ focusMode, onSaved }: FragmentInputProps
 
   return (
     <div className="rounded-2xl border border-ink-200/70 dark:border-ink-700/70 bg-white/60 dark:bg-ink-900/40 animate-fade-up overflow-hidden shadow-sm">
+      {hasDraftBanner && content.trim() && (
+        <div className="flex items-center justify-between gap-2 px-4 py-2 bg-amber-50/80 dark:bg-amber-950/30 border-b border-amber-200/50 dark:border-amber-800/40 text-xs">
+          <span className="text-amber-800 dark:text-amber-300">你有未保存的草稿，已自动恢复</span>
+          <button
+            type="button"
+            onClick={() => {
+              setContent('');
+              setNote('');
+              setSelectedTags([]);
+              setHasDraftBanner(false);
+              if (activeProject) localStorage.removeItem(DRAFT_KEY(activeProject.id));
+            }}
+            className="text-amber-600 dark:text-amber-400 hover:underline shrink-0"
+          >
+            丢弃
+          </button>
+        </div>
+      )}
       <textarea
         ref={textareaRef}
         value={content}
         onChange={e => setContent(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="一句对白、一个画面、半成品的想法……"
-        rows={focusMode ? 4 : 2}
-        className={`w-full px-4 py-3.5 text-ink-900 dark:text-ink-100 placeholder:text-ink-400 dark:placeholder:text-ink-500 bg-transparent border-none resize-none focus:outline-none font-serif leading-relaxed ${
+        rows={focusMode ? 4 : 3}
+        className={`w-full px-4 py-3.5 text-ink-900 dark:text-ink-100 placeholder:text-ink-400 dark:placeholder:text-ink-500 bg-transparent border-none resize-y min-h-[7.5rem] sm:min-h-0 focus:outline-none font-serif leading-relaxed ${
           focusMode ? 'text-base' : 'text-[15px]'
         }`}
       />
@@ -260,7 +288,7 @@ export default function FragmentInput({ focusMode, onSaved }: FragmentInputProps
         </div>
       )}
 
-      <div className={`flex items-center justify-between px-3 sm:px-4 py-2 bg-ink-50/80 dark:bg-ink-800/50 ${focusMode ? 'border-t border-ink-200/50 dark:border-ink-700/50' : ''}`}>
+      <div className={`flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-3 sm:px-4 py-2 bg-ink-50/80 dark:bg-ink-800/50 ${focusMode ? 'border-t border-ink-200/50 dark:border-ink-700/50' : ''}`}>
         {!focusMode && (
         <div className="flex items-center gap-2 flex-wrap">
           <button
@@ -290,7 +318,7 @@ export default function FragmentInput({ focusMode, onSaved }: FragmentInputProps
           )}
         </div>
         )}
-        <div className={`flex items-center gap-2 ${focusMode ? 'w-full justify-end' : ''}`}>
+        <div className={`flex items-center justify-end gap-2 ${focusMode ? 'w-full' : 'w-full sm:w-auto'}`}>
           {justSaved && (
             <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 animate-fade-in">
               好，又抓住了一条 ✓
@@ -313,7 +341,7 @@ export default function FragmentInput({ focusMode, onSaved }: FragmentInputProps
           <button
             onClick={handleSubmit}
             disabled={!content.trim()}
-            className="btn-primary px-4 py-2 text-xs disabled:shadow-none"
+            className="btn-primary px-4 py-2 text-xs disabled:shadow-none min-w-[5.5rem]"
           >
             <Send size={13} />
             <span className="hidden sm:inline">{focusMode ? '记下来' : '保存素材'}</span>
