@@ -3,7 +3,7 @@ import { useWriting } from '../stores/writing-store';
 import { suggestTags } from '../services/ai-enhanced';
 import { useToast } from '../contexts/ToastContext';
 import { recordCapture } from '../services/local-stats';
-import { Send, Tag, Hash, Bookmark, Sparkles, X, Loader2, Mic, MicOff } from 'lucide-react';
+import { Send, Tag, Hash, Bookmark, Sparkles, X, Loader2 } from 'lucide-react';
 
 const DRAFT_KEY = (projectId: string) => `fw-draft-${projectId}`;
 const QUICK_CAPTURE_KEY = 'fw-quick-capture';
@@ -26,10 +26,7 @@ export default function FragmentInput({ focusMode, onSaved }: FragmentInputProps
   const [suggestingTags, setSuggestingTags] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [hasDraftBanner, setHasDraftBanner] = useState(false);
-  const [voiceSupported, setVoiceSupported] = useState(false);
-  const [listening, setListening] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const recognitionRef = useRef<any>(null);
   
   const commonTags = ['灵感', '待展开', '数据', '引用', '观点', '故事', '金句', '问题'];
 
@@ -39,18 +36,6 @@ export default function FragmentInput({ focusMode, onSaved }: FragmentInputProps
       textareaRef.current.focus();
     }
   }, [expanded, focusMode]);
-
-  useEffect(() => {
-    const SpeechRecognition =
-      typeof window !== 'undefined'
-        ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-        : null;
-    setVoiceSupported(Boolean(SpeechRecognition));
-
-    return () => {
-      recognitionRef.current?.stop?.();
-    };
-  }, []);
 
   // 切换项目时恢复草稿
   useEffect(() => {
@@ -140,47 +125,6 @@ export default function FragmentInput({ focusMode, onSaved }: FragmentInputProps
     } finally {
       setSuggestingTags(false);
     }
-  };
-
-  const toggleVoiceInput = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      toast.error('当前浏览器不支持语音输入');
-      return;
-    }
-
-    if (listening) {
-      recognitionRef.current?.stop?.();
-      setListening(false);
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'zh-CN';
-    recognition.interimResults = true;
-    recognition.continuous = true;
-
-    let finalTranscript = '';
-    recognition.onresult = (event: any) => {
-      let interim = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const text = event.results[i][0]?.transcript || '';
-        if (event.results[i].isFinal) finalTranscript += text;
-        else interim += text;
-      }
-      const merged = [content.trim(), finalTranscript.trim(), interim.trim()].filter(Boolean).join('\n');
-      setContent(merged);
-      setExpanded(true);
-    };
-    recognition.onerror = () => {
-      setListening(false);
-      toast.error('语音输入中断了，可以再试一次');
-    };
-    recognition.onend = () => setListening(false);
-    recognitionRef.current = recognition;
-    recognition.start();
-    setListening(true);
-    setExpanded(true);
   };
 
   // Collapse on Escape, submit on Ctrl+Enter
@@ -365,21 +309,6 @@ export default function FragmentInput({ focusMode, onSaved }: FragmentInputProps
             >
               {suggestingTags ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
               <span className="hidden sm:inline">AI 推荐标签</span>
-            </button>
-          )}
-          {voiceSupported && (
-            <button
-              type="button"
-              onClick={toggleVoiceInput}
-              className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg transition-colors ${
-                listening
-                  ? 'bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400'
-                  : 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
-              }`}
-              title={window.isSecureContext ? '语音输入' : '语音输入可能需要 HTTPS 才能使用'}
-            >
-              {listening ? <MicOff size={12} /> : <Mic size={12} />}
-              <span>{listening ? '停止听写' : '语音'}</span>
             </button>
           )}
           {selectedTags.length > 0 && (

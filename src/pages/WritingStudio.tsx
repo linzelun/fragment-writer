@@ -12,6 +12,7 @@ import WritingAssistant from '../components/WritingAssistant';
 import ShortcutsHelp from '../components/ShortcutsHelp';
 import FeedbackBanner from '../components/FeedbackBanner';
 import ActivityHeatmap from '../components/ActivityHeatmap';
+import DailyGoalPanel from '../components/DailyGoalPanel';
 import FocusMode from '../components/FocusMode';
 import MicroTasks from '../components/MicroTasks';
 import InspirationPanel from '../components/InspirationPanel';
@@ -309,6 +310,7 @@ export default function WritingStudio() {
       <main className={`max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-5 space-y-4 animate-fade-in ${sortedFragments.length > 0 ? 'pb-52 sm:pb-28' : 'pb-10'}`}>
         <FeedbackBanner stats={localStats} />
         <ActivityHeatmap refreshKey={localStats.totalCaptures + sortedFragments.length} />
+        <DailyGoalPanel fragments={sortedFragments} />
 
         <section className="section-card overflow-hidden">
           <div className="px-4 sm:px-5 py-4 space-y-3">
