@@ -19,7 +19,7 @@ import { fragmentsApi, type SearchResult } from '../services/api';
 import { getLocalStats, getStaleFragments } from '../services/local-stats';
 import { isReminderEnabled, startReminderScheduler, stopReminderScheduler } from '../services/reminders';
 import { getWorkingFragments, selectRecentIds } from '../utils/writing-helpers';
-import { Menu, Sparkles, BookOpen, Moon, Sun, Layers, Bot, Keyboard, History, X, Clock, Target } from 'lucide-react';
+import { Menu, Sparkles, BookOpen, Moon, Sun, Layers, Bot, Keyboard, History, X, Clock, Target, Shuffle, PenLine } from 'lucide-react';
 import type { Fragment, FocusSession, LocalStats } from '../types';
 
 interface VersionSummary {
@@ -50,6 +50,7 @@ export default function WritingStudio() {
   const [focusOpen, setFocusOpen] = useState(false);
   const [focusSession, setFocusSession] = useState<FocusSession | undefined>();
   const [localStats, setLocalStats] = useState<LocalStats>(() => getLocalStats());
+  const [revivedFragment, setRevivedFragment] = useState<Fragment | null>(null);
 
   const { fragments: workingFragments, source: workingSource } = useMemo(
     () => getWorkingFragments(sortedFragments, selectedFragmentIds),
@@ -60,6 +61,7 @@ export default function WritingStudio() {
 
   useEffect(() => {
     setSelectedFragmentIds(new Set());
+    setRevivedFragment(null);
   }, [activeProject?.id]);
 
   useEffect(() => {
@@ -82,6 +84,14 @@ export default function WritingStudio() {
     setFocusSession(session);
     setFocusOpen(true);
   }, []);
+
+  const reviveRandomFragment = useCallback(() => {
+    if (sortedFragments.length === 0) return;
+    const randomIndex = Math.floor(Math.random() * sortedFragments.length);
+    const fragment = sortedFragments[randomIndex];
+    setRevivedFragment(fragment);
+    setSelectedFragmentIds(new Set([fragment.id]));
+  }, [sortedFragments]);
 
   const hasArticle = activeProject && state.articles[activeProject.id];
 
@@ -299,6 +309,83 @@ export default function WritingStudio() {
       <main className={`max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-5 space-y-4 animate-fade-in ${sortedFragments.length > 0 ? 'pb-52 sm:pb-28' : 'pb-10'}`}>
         <FeedbackBanner stats={localStats} />
         <ActivityHeatmap refreshKey={localStats.totalCaptures + sortedFragments.length} />
+
+        <section className="section-card overflow-hidden">
+          <div className="px-4 sm:px-5 py-4 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="section-label">先启动，不评判</h2>
+                <p className="text-xs text-ink-400 mt-1">不用准备好，只要进入动作。</p>
+              </div>
+              <span className="rounded-full bg-violet-100 dark:bg-violet-900/30 px-2.5 py-1 text-[10px] font-semibold text-violet-600 dark:text-violet-300">
+                ADHD 友好
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => handleStartFocus({ taskType: 'capture', taskLabel: '只写一句', durationMinutes: 2 })}
+                className="flex items-center gap-3 rounded-2xl border border-amber-200/70 dark:border-amber-800/50 bg-amber-50/70 dark:bg-amber-950/20 px-4 py-3 text-left hover:bg-amber-100/80 dark:hover:bg-amber-950/35 transition-colors"
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-200/80 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300">
+                  <PenLine size={18} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-ink-800 dark:text-ink-100">只写一句</p>
+                  <p className="text-xs text-ink-500 dark:text-ink-400 truncate">2 分钟，把第一句话抓住</p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={reviveRandomFragment}
+                disabled={sortedFragments.length === 0}
+                className="flex items-center gap-3 rounded-2xl border border-violet-200/70 dark:border-violet-800/50 bg-violet-50/70 dark:bg-violet-950/20 px-4 py-3 text-left hover:bg-violet-100/80 dark:hover:bg-violet-950/35 disabled:opacity-50 transition-colors"
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-200/80 dark:bg-violet-900/60 text-violet-700 dark:text-violet-300">
+                  <Shuffle size={18} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-ink-800 dark:text-ink-100">随机复活旧素材</p>
+                  <p className="text-xs text-ink-500 dark:text-ink-400 truncate">不知道写什么时，让旧灵感来找你</p>
+                </div>
+              </button>
+            </div>
+
+            {revivedFragment && (
+              <div className="rounded-2xl border border-violet-200/70 dark:border-violet-800/40 bg-white/70 dark:bg-ink-900/40 p-3 animate-fade-in">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-300">
+                    <Sparkles size={15} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-semibold text-violet-600 dark:text-violet-300">这条可以继续长大一点</p>
+                    <p className="mt-1 line-clamp-3 text-sm leading-relaxed text-ink-700 dark:text-ink-200 break-words">
+                      {revivedFragment.content}
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleStartFocus({ taskType: 'custom', taskLabel: '扩写这一条', durationMinutes: 5 })}
+                        className="rounded-xl bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-700"
+                      >
+                        扩写 5 分钟
+                      </button>
+                      <button
+                        type="button"
+                        onClick={reviveRandomFragment}
+                        className="rounded-xl border border-ink-200 dark:border-ink-700 px-3 py-1.5 text-xs text-ink-500 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800"
+                      >
+                        换一条
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
 
         {hasArticle && (
           <div className="article-banner animate-fade-in">

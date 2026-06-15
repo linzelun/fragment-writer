@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ListChecks, Loader2, Bell, BellOff, ChevronDown } from 'lucide-react';
+import { ListChecks, Loader2, Bell, BellOff, ChevronDown, Circle, CheckCircle2 } from 'lucide-react';
 import type { Fragment, FocusSession, MicroTask, WritingProject } from '../types';
 import { splitMicroTasks } from '../services/ai-inspire';
 import { recordAiUsage } from '../services/local-stats';
@@ -23,6 +23,8 @@ export default function MicroTasks({ fragments, project, onStartFocus, onAiUsed 
   const [reminderOn, setReminderOn] = useState(isReminderEnabled());
   const [reminderTime, setReminderTimeState] = useState(getReminderTime());
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('fw-microtasks-collapsed') === 'true');
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  const [justCompletedStep, setJustCompletedStep] = useState<number | null>(null);
 
   const handleSplit = async () => {
     setLoading(true);
@@ -30,6 +32,8 @@ export default function MicroTasks({ fragments, project, onStartFocus, onAiUsed 
     try {
       const result = await splitMicroTasks(fragments, project);
       setTasks(result);
+      setCompletedSteps(new Set());
+      setJustCompletedStep(null);
       recordAiUsage();
       onAiUsed?.();
     } catch (e) {
@@ -59,6 +63,22 @@ export default function MicroTasks({ fragments, project, onStartFocus, onAiUsed 
     setReminderTimeState(time);
     setReminderTime(time);
   };
+
+  const toggleDone = (step: number) => {
+    setCompletedSteps((prev) => {
+      const next = new Set(prev);
+      if (next.has(step)) {
+        next.delete(step);
+      } else {
+        next.add(step);
+        setJustCompletedStep(step);
+        window.setTimeout(() => setJustCompletedStep(null), 1800);
+      }
+      return next;
+    });
+  };
+
+  const doneCount = completedSteps.size;
 
   return (
     <section className="section-card overflow-hidden">
@@ -91,19 +111,40 @@ export default function MicroTasks({ fragments, project, onStartFocus, onAiUsed 
         {error && <p className="text-sm text-red-500">{error}</p>}
 
         {tasks.length > 0 && (
+          <>
+          <div className="flex items-center justify-between rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300">
+            <span>已完成 {doneCount}/{tasks.length} 步</span>
+            <span>{doneCount === tasks.length ? '可以停下庆祝一下' : '做完一小步就够好'}</span>
+          </div>
           <ol className="space-y-2">
             {tasks.map((task) => (
               <li
                 key={task.step}
-                className="flex items-start gap-3 rounded-xl border border-emerald-200/60 dark:border-emerald-800/40 bg-emerald-50/30 dark:bg-emerald-950/20 p-3"
+                className={`flex items-start gap-3 rounded-xl border p-3 transition-all ${
+                  completedSteps.has(task.step)
+                    ? 'border-emerald-300/70 bg-emerald-100/50 dark:border-emerald-700/50 dark:bg-emerald-950/30'
+                    : 'border-emerald-200/60 bg-emerald-50/30 dark:border-emerald-800/40 dark:bg-emerald-950/20'
+                }`}
               >
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900 text-sm font-bold text-emerald-700 dark:text-emerald-300">
-                  {task.step}
-                </span>
+                <button
+                  type="button"
+                  onClick={() => toggleDone(task.step)}
+                  className="mt-0.5 shrink-0 rounded-full text-emerald-600 dark:text-emerald-400"
+                  title={completedSteps.has(task.step) ? '标记为未完成' : '标记完成'}
+                >
+                  {completedSteps.has(task.step) ? <CheckCircle2 size={26} className="fill-emerald-100 dark:fill-emerald-950" /> : <Circle size={26} />}
+                </button>
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-sm text-ink-800 dark:text-ink-200">{task.title}</p>
-                  <p className="mt-0.5 text-xs text-ink-500">{task.description}</p>
+                  <p className={`font-semibold text-sm ${completedSteps.has(task.step) ? 'text-emerald-800 dark:text-emerald-200 line-through decoration-emerald-400/70' : 'text-ink-800 dark:text-ink-200'}`}>
+                    {task.title}
+                  </p>
+                  <p className="mt-0.5 text-xs text-ink-500">{completedSteps.has(task.step) ? '这一步已经完成，别急着加码。' : task.description}</p>
                   <p className="mt-1 text-[11px] text-ink-400">约 {task.estimatedMinutes} 分钟</p>
+                  {justCompletedStep === task.step && (
+                    <p className="mt-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 animate-fade-in">
+                      完成一小步，也是在推进。
+                    </p>
+                  )}
                 </div>
                 <button
                   type="button"
@@ -119,6 +160,7 @@ export default function MicroTasks({ fragments, project, onStartFocus, onAiUsed 
               </li>
             ))}
           </ol>
+          </>
         )}
 
         <div className="border-t border-ink-100 dark:border-ink-800 pt-4">

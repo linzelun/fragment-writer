@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Play, Pause, RotateCcw } from 'lucide-react';
+import { X, Play, Pause, RotateCcw, TimerReset } from 'lucide-react';
 import type { FocusSession, FocusTaskType } from '../types';
 import FragmentInput from './FragmentInput';
 
@@ -11,6 +11,8 @@ interface FocusModeProps {
 }
 
 const TASK_PRESETS: { type: FocusTaskType; label: string; minutes: number }[] = [
+  { type: 'capture', label: '只写一句', minutes: 2 },
+  { type: 'capture', label: '热身 5 分钟', minutes: 5 },
   { type: 'capture', label: '记 1 条素材', minutes: 10 },
   { type: 'inspire', label: '看 AI 灵感', minutes: 15 },
   { type: 'draft', label: '写 200 字', minutes: 25 },
@@ -24,11 +26,13 @@ export default function FocusMode({ open, onClose, initialTask, onFragmentSaved 
   const [secondsLeft, setSecondsLeft] = useState(task.durationMinutes * 60);
   const [running, setRunning] = useState(false);
   const [done, setDone] = useState(false);
+  const [customMinutes, setCustomMinutes] = useState(String(task.durationMinutes));
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const reset = useCallback((session: FocusSession) => {
     setTask(session);
     setSecondsLeft(session.durationMinutes * 60);
+    setCustomMinutes(String(session.durationMinutes));
     setRunning(false);
     setDone(false);
   }, []);
@@ -68,7 +72,12 @@ export default function FocusMode({ open, onClose, initialTask, onFragmentSaved 
 
   const minutes = Math.floor(secondsLeft / 60);
   const seconds = secondsLeft % 60;
-  const progress = 1 - secondsLeft / (task.durationMinutes * 60);
+  const totalSeconds = Math.max(task.durationMinutes * 60, 1);
+  const progress = 1 - secondsLeft / totalSeconds;
+  const applyCustomMinutes = () => {
+    const minutesValue = Math.min(120, Math.max(1, Number(customMinutes) || task.durationMinutes));
+    reset({ taskType: 'custom', taskLabel: `${minutesValue} 分钟自由专注`, durationMinutes: minutesValue });
+  };
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-ink-950/90 p-4 backdrop-blur-sm animate-fade-in">
@@ -101,6 +110,22 @@ export default function FocusMode({ open, onClose, initialTask, onFragmentSaved 
           <div className="text-center">
             <p className="text-lg text-emerald-400 font-medium">这一步完成了，很棒。</p>
             <p className="mt-1 text-sm text-ink-400">休息一下吧，不用马上继续。</p>
+            <div className="mt-4 flex justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => reset({ ...task, durationMinutes: 5 })}
+                className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+              >
+                再来 5 分钟
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-xl border border-ink-600 px-4 py-2 text-sm text-ink-300 hover:bg-ink-800"
+              >
+                今天先到这
+              </button>
+            </div>
           </div>
         ) : (
           <p className="text-center text-sm text-ink-400">只做这一件事，其他的先放一边</p>
@@ -139,6 +164,32 @@ export default function FocusMode({ open, onClose, initialTask, onFragmentSaved 
               {preset.label}
             </button>
           ))}
+        </div>
+
+        <div className="mt-4 flex items-center justify-center gap-2">
+          <label className="flex items-center gap-2 rounded-xl bg-ink-800 px-3 py-2 text-sm text-ink-300">
+            <TimerReset className="h-4 w-4 text-violet-300" />
+            自定义
+            <input
+              type="number"
+              min={1}
+              max={120}
+              value={customMinutes}
+              onChange={(e) => setCustomMinutes(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') applyCustomMinutes();
+              }}
+              className="w-14 rounded-lg border border-ink-700 bg-ink-900 px-2 py-1 text-center text-sm text-white"
+            />
+            分钟
+          </label>
+          <button
+            type="button"
+            onClick={applyCustomMinutes}
+            className="rounded-xl border border-violet-500/60 px-3 py-2 text-sm text-violet-200 hover:bg-violet-950/40"
+          >
+            应用
+          </button>
         </div>
 
         {task.taskType === 'capture' && (
