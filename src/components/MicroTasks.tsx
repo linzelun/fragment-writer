@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ListChecks, Loader2, Bell, BellOff, ChevronDown, Circle, CheckCircle2 } from 'lucide-react';
 import type { Fragment, FocusSession, MicroTask, WritingProject } from '../types';
 import { splitMicroTasks } from '../services/ai-inspire';
@@ -8,6 +8,14 @@ import {
   setReminderEnabled, setReminderTime, startReminderScheduler,
 } from '../services/reminders';
 import { getStaleFragments } from '../services/local-stats';
+
+const TASKS_CACHE_VERSION = 1;
+
+interface SavedMicroTasks {
+  version: number;
+  tasks: MicroTask[];
+  completedSteps: number[];
+}
 
 interface MicroTasksProps {
   fragments: Fragment[];
@@ -25,6 +33,42 @@ export default function MicroTasks({ fragments, project, onStartFocus, onAiUsed 
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('fw-microtasks-collapsed') === 'true');
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [justCompletedStep, setJustCompletedStep] = useState<number | null>(null);
+  const cacheKey = useMemo(() => {
+    const projectId = project?.id || 'no-project';
+    const fragmentSignature = fragments.map((f) => f.id).join('.');
+    return `fw-microtasks-${projectId}-${fragmentSignature}`;
+  }, [fragments, project?.id]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(cacheKey);
+      if (!raw) {
+        setTasks([]);
+        setCompletedSteps(new Set());
+        return;
+      }
+      const saved = JSON.parse(raw) as SavedMicroTasks;
+      if (saved.version !== TASKS_CACHE_VERSION || !Array.isArray(saved.tasks)) return;
+      setTasks(saved.tasks);
+      setCompletedSteps(new Set(saved.completedSteps || []));
+    } catch {
+      setTasks([]);
+      setCompletedSteps(new Set());
+    }
+  }, [cacheKey]);
+
+  useEffect(() => {
+    if (tasks.length === 0) {
+      localStorage.removeItem(cacheKey);
+      return;
+    }
+    const payload: SavedMicroTasks = {
+      version: TASKS_CACHE_VERSION,
+      tasks,
+      completedSteps: Array.from(completedSteps),
+    };
+    localStorage.setItem(cacheKey, JSON.stringify(payload));
+  }, [cacheKey, completedSteps, tasks]);
 
   const handleSplit = async () => {
     setLoading(true);
@@ -79,6 +123,7 @@ export default function MicroTasks({ fragments, project, onStartFocus, onAiUsed 
   };
 
   const doneCount = completedSteps.size;
+  const nextTask = tasks.find((task) => !completedSteps.has(task.step));
 
   return (
     <section className="section-card overflow-hidden">
@@ -116,6 +161,26 @@ export default function MicroTasks({ fragments, project, onStartFocus, onAiUsed 
             <span>已完成 {doneCount}/{tasks.length} 步</span>
             <span>{doneCount === tasks.length ? '可以停下庆祝一下' : '做完一小步就够好'}</span>
           </div>
+          {nextTask && (
+            <div className="rounded-2xl border border-amber-200/70 dark:border-amber-800/40 bg-amber-50/60 dark:bg-amber-950/20 p-3">
+              <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-300">下一步只看这个</p>
+              <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm font-semibold text-ink-800 dark:text-ink-100">{nextTask.title}</p>
+                <button
+                  type="button"
+                  onClick={() => onStartFocus?.({
+                    taskType: 'custom',
+                    taskLabel: nextTask.title,
+                    durationMinutes: Math.min(nextTask.estimatedMinutes, 25),
+                  })}
+                  className="self-start rounded-xl bg-amber-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-amber-600 sm:self-auto"
+                >
+                  现在做
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-ink-500 dark:text-ink-400">{nextTask.description}</p>
+            </div>
+          )}
           <ol className="space-y-2">
             {tasks.map((task) => (
               <li
