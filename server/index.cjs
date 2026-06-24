@@ -255,7 +255,7 @@ if (!artColumnNames.includes('styleImprovements')) {
 
 app.get('/api/projects', wrapRoute((req, res) => {
   const rows = db.prepare(`
-    SELECT p.*, 
+    SELECT p.*,
       (SELECT COUNT(*) FROM fragments WHERE projectId = p.id) as fragmentCount,
       (SELECT MAX(updatedAt) FROM fragments WHERE projectId = p.id) as lastFragmentAt
     FROM projects p ORDER BY p.updatedAt DESC
@@ -295,6 +295,7 @@ app.put('/api/projects/:id', wrapRoute((req, res) => {
 app.delete('/api/projects/:id', wrapRoute((req, res) => {
   const { id } = req.params;
   db.prepare('DELETE FROM articles WHERE projectId = ?').run(id);
+  db.prepare('DELETE FROM article_versions WHERE projectId = ?').run(id);
   db.prepare('DELETE FROM fragments WHERE projectId = ?').run(id);
   db.prepare('DELETE FROM projects WHERE id = ?').run(id);
   res.json({ ok: true });
@@ -347,14 +348,14 @@ app.delete('/api/fragments/:id', wrapRoute((req, res) => {
 // GET /api/fragments/search?q=关键词&projectId=可选&limit=50
 app.get('/api/fragments/search', wrapRoute((req, res) => {
   const { q, projectId, limit } = req.query;
-  
+
   if (!q || !q.trim()) {
     return jsonError(res, 400, '请提供搜索关键词');
   }
-  
+
   const searchQuery = q.trim();
   const resultLimit = parseInt(limit) || 50;
-  
+
   // 检查 FTS 表是否存在
   const ftsTableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='fragments_fts'").get();
   if (!ftsTableExists) {
@@ -366,7 +367,7 @@ app.get('/api/fragments/search', wrapRoute((req, res) => {
     
     if (projectId) {
       sql = `
-        SELECT f.*, 
+        SELECT f.*,
                snippet(fragments_fts, 2, '<mark>', '</mark>', '...', 40) as highlightContent,
                snippet(fragments_fts, 3, '<mark>', '</mark>', '...', 40) as highlightSource,
                snippet(fragments_fts, 4, '<mark>', '</mark>', '...', 40) as highlightNote,
@@ -374,14 +375,13 @@ app.get('/api/fragments/search', wrapRoute((req, res) => {
                bm25(fragments_fts) as rank
         FROM fragments_fts
         JOIN fragments f ON f.id = fragments_fts.id
-        WHERE fragments_fts MATCH ? AND f.projectId = ?
-        ORDER BY rank
+        WHERE fragments_fts MATCH ? AND f.projectId = ?        ORDER BY rank
         LIMIT ?
       `;
       params = [escapeFtsQuery(searchQuery), projectId, resultLimit];
     } else {
       sql = `
-        SELECT f.*, 
+        SELECT f.*,
                snippet(fragments_fts, 2, '<mark>', '</mark>', '...', 40) as highlightContent,
                snippet(fragments_fts, 3, '<mark>', '</mark>', '...', 40) as highlightSource,
                snippet(fragments_fts, 4, '<mark>', '</mark>', '...', 40) as highlightNote,
@@ -389,8 +389,7 @@ app.get('/api/fragments/search', wrapRoute((req, res) => {
                bm25(fragments_fts) as rank
         FROM fragments_fts
         JOIN fragments f ON f.id = fragments_fts.id
-        WHERE fragments_fts MATCH ?
-        ORDER BY rank
+        WHERE fragments_fts MATCH ?        ORDER BY rank
         LIMIT ?
       `;
       params = [escapeFtsQuery(searchQuery), resultLimit];
@@ -431,7 +430,7 @@ function escapeFtsQuery(query) {
 function fallbackSearch(res, query, projectId, limit) {
   const likePattern = `%${query}%`;
   let sql, params;
-  
+
   if (projectId) {
     sql = `
       SELECT * FROM fragments
@@ -450,7 +449,7 @@ function fallbackSearch(res, query, projectId, limit) {
     `;
     params = [likePattern, likePattern, likePattern, likePattern, limit];
   }
-  
+
   const rows = db.prepare(sql).all(...params);
   rows.forEach(row => {
     try { row.tags = JSON.parse(row.tags || '[]'); } catch { row.tags = []; }
@@ -502,10 +501,10 @@ app.post('/api/articles', wrapRoute((req, res) => {
 
   db.prepare(
     'INSERT OR REPLACE INTO articles (projectId, title, content, summary, generatedAt, fragmentCount, styleScore, styleBreakdown, styleHighlights, styleImprovements) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).run(projectId, title, content, summary, generatedAt, fragmentCount, 
-        styleScore || null, 
-        styleBreakdown ? JSON.stringify(styleBreakdown) : '{}', 
-        styleHighlights ? JSON.stringify(styleHighlights) : '[]', 
+  ).run(projectId, title, content, summary, generatedAt, fragmentCount,
+        styleScore || null,
+        styleBreakdown ? JSON.stringify(styleBreakdown) : '{}',
+        styleHighlights ? JSON.stringify(styleHighlights) : '[]',
         styleImprovements ? JSON.stringify(styleImprovements) : '[]');
 
   const versionResult = db.prepare('SELECT MAX(version) as maxVersion FROM article_versions WHERE projectId = ?').get(projectId);

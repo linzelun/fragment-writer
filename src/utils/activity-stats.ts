@@ -86,9 +86,18 @@ function computeStreaks(dailyCounts: Record<string, number>, today: Date): { lon
   return { longest, current };
 }
 
-function buildWeekGrid(dailyCounts: Record<string, number>, today: Date): ActivitySummary['weeks'] {
+const VISIBLE_MONTHS = 6;
+
+export { VISIBLE_MONTHS };
+
+function getVisibleRange(today: Date): { start: Date; end: Date } {
   const end = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const start = addDays(end, -364);
+  const start = new Date(today.getFullYear(), today.getMonth() - (VISIBLE_MONTHS - 1), 1);
+  return { start, end };
+}
+
+function buildWeekGrid(dailyCounts: Record<string, number>, today: Date): ActivitySummary['weeks'] {
+  const { start, end } = getVisibleRange(today);
 
   const startDow = start.getDay();
   const gridStart = addDays(start, startDow === 0 ? -6 : 1 - startDow);
@@ -96,7 +105,7 @@ function buildWeekGrid(dailyCounts: Record<string, number>, today: Date): Activi
   const weeks: ActivitySummary['weeks'] = [];
   let cursor = new Date(gridStart);
 
-  while (cursor <= end || weeks.length < 53) {
+  while (cursor <= end) {
     const week: Array<{ date: string; count: number } | null> = [];
     for (let i = 0; i < 7; i++) {
       const key = formatDateKey(cursor);
@@ -108,7 +117,6 @@ function buildWeekGrid(dailyCounts: Record<string, number>, today: Date): Activi
       cursor = addDays(cursor, 1);
     }
     weeks.push(week);
-    if (cursor > end && weeks.length >= 53) break;
   }
 
   return weeks;
@@ -137,12 +145,19 @@ function buildMonthLabels(weeks: ActivitySummary['weeks']): ActivitySummary['mon
 export function buildActivitySummary(fragments: Fragment[], now = new Date()): ActivitySummary {
   const dailyCounts = aggregateCapturesByDay(fragments);
   const total = fragments.length;
+  const { start: rangeStart, end: rangeEnd } = getVisibleRange(now);
   const weeks = buildWeekGrid(dailyCounts, now);
   const monthLabels = buildMonthLabels(weeks);
   const { longest, current } = computeStreaks(dailyCounts, now);
 
+  const inRange = (dateKey: string) => {
+    const d = parseDateKey(dateKey);
+    return d >= rangeStart && d <= rangeEnd;
+  };
+
   let mostActiveDay: ActivitySummary['mostActiveDay'] = null;
   for (const [date, count] of Object.entries(dailyCounts)) {
+    if (!inRange(date)) continue;
     if (!mostActiveDay || count > mostActiveDay.count) {
       mostActiveDay = { date, count };
     }
@@ -150,6 +165,7 @@ export function buildActivitySummary(fragments: Fragment[], now = new Date()): A
 
   const monthTotals = new Map<string, number>();
   for (const [date, count] of Object.entries(dailyCounts)) {
+    if (!inRange(date)) continue;
     const d = parseDateKey(date);
     const key = `${d.getFullYear()}-${d.getMonth()}`;
     monthTotals.set(key, (monthTotals.get(key) || 0) + count);

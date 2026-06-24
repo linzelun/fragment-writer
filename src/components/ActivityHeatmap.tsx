@@ -3,7 +3,7 @@ import { ChevronDown, BarChart3 } from 'lucide-react';
 import { useWriting } from '../stores/writing-store';
 import { fragmentsApi } from '../services/api';
 import type { Fragment } from '../types';
-import { buildActivitySummary, getHeatLevel } from '../utils/activity-stats';
+import { buildActivitySummary, getHeatLevel, VISIBLE_MONTHS } from '../utils/activity-stats';
 
 const COLLAPSE_KEY = 'fw-activity-heatmap-collapsed';
 
@@ -51,10 +51,17 @@ export default function ActivityHeatmap({ refreshKey = 0 }: ActivityHeatmapProps
   }, [state.projects, refreshKey]);
 
   const summary = useMemo(() => buildActivitySummary(allFragments), [allFragments]);
-  const maxCount = useMemo(
-    () => Math.max(1, ...Object.values(summary.dailyCounts)),
-    [summary.dailyCounts],
-  );
+  const maxCount = useMemo(() => {
+    const visibleDates = new Set(
+      summary.weeks.flat().filter((d): d is { date: string; count: number } => d !== null).map((d) => d.date),
+    );
+    return Math.max(
+      1,
+      ...Object.entries(summary.dailyCounts)
+        .filter(([k]) => visibleDates.has(k))
+        .map(([, v]) => v),
+    );
+  }, [summary.dailyCounts, summary.weeks]);
 
   if (summary.total === 0 && !loading) return null;
 
@@ -85,7 +92,7 @@ export default function ActivityHeatmap({ refreshKey = 0 }: ActivityHeatmapProps
         <div className="text-left min-w-0">
           <h2 className="section-label">记录轨迹</h2>
           <p className="text-[11px] text-ink-400 mt-0.5 truncate">
-            {loading ? '加载中…' : `共记录 ${summary.total.toLocaleString()} 次素材`}
+            {loading ? '加载中…' : `共记录 ${summary.total.toLocaleString()} 次 · 近 ${VISIBLE_MONTHS} 个月`}
           </p>
         </div>
         <ChevronDown
@@ -100,11 +107,11 @@ export default function ActivityHeatmap({ refreshKey = 0 }: ActivityHeatmapProps
             <span className="text-3xl font-bold text-ink-900 dark:text-ink-100 tabular-nums">
               {summary.total.toLocaleString()}
             </span>
-            <span className="text-sm text-ink-500 dark:text-ink-400 pb-1">次素材记录</span>
+            <span className="text-sm text-ink-500 dark:text-ink-400 pb-1">次素材记录（近半年）</span>
           </div>
 
           <div className="overflow-x-auto -mx-1 px-1 pb-1">
-            <div className="min-w-[680px]">
+            <div className="min-w-[320px]">
               <div className="flex gap-[3px] mb-1 pl-7 text-[10px] text-ink-400 dark:text-ink-500">
                 {summary.weeks.map((_, weekIndex) => {
                   const month = summary.monthLabels.find((m) => m.weekIndex === weekIndex);

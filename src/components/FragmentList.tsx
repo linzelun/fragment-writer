@@ -36,10 +36,10 @@ export default function FragmentList({
         <h3 className="brand-title text-base text-ink-800 dark:text-ink-200 mb-1.5">
           {searchQuery ? '未找到匹配的素材' : '暂未记录任何素材'}
         </h3>
-        <p className="text-sm text-ink-500 dark:text-ink-400 max-w-xs leading-relaxed">
+        <p className="text-sm text-ink-500 dark:text-ink-400 max-w-xs truncate">
           {searchQuery
             ? `在「${activeProject.title}」中没有找到包含"${searchQuery}"的素材，试试其他关键词。`
-            : '在上方记下第一条灵感，不用整理，先存下来再说。'
+            : '在上方记下第一条灵感'
           }
         </p>
       </div>
